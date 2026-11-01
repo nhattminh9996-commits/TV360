@@ -1,0 +1,7253 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
+<meta
+    name="theme-color"
+    content="#0a0c10"
+>
+
+<title>TV360 WEB PLAYER</title>
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.16.2/shaka-player.compiled.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.8.0/dist/mpegts.min.js"></script>
+
+<!-- Neu CDN bi chan (mang VN/chan quang cao) -> tai lai tu nguon khac -->
+<script>
+(function () {
+    var cdns = {
+        shaka: [
+            "https://cdn.jsdelivr.net/npm/shaka-player@4.16.2/dist/shaka-player.compiled.js"
+        ],
+        Hls: [
+            "https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"
+        ],
+        mpegts: []
+    };
+
+    function load(names) {
+        if (!names.length) return;
+
+        var s = document.createElement("script");
+        s.src = names[0];
+        s.onload = function () { load(names.slice(1)); };
+        s.onerror = function () { load(names.slice(1)); };
+
+        document.head.appendChild(s);
+    }
+
+    if (typeof shaka === "undefined") load(cdns.shaka);
+    if (typeof Hls === "undefined") load(cdns.Hls);
+})();
+</script>
+
+
+<style>
+/* ==========================================================
+   TV360 WEB PLAYER - GIAO DIEN 2026 (PC + Mobile)
+   ========================================================== */
+:root {
+    --bg: #0a0c10;
+    --panel: #12151d;
+    --panel-2: #171b26;
+    --card: #151923;
+    --border: rgba(255, 255, 255, .07);
+    --border-2: rgba(255, 255, 255, .12);
+    --text: #f2f4f8;
+    --text-dim: #9aa3b2;
+    --text-mute: #6b7383;
+    --accent: #ff2b3d;
+    --accent-2: #d90d20;
+    --accent-soft: rgba(255, 43, 61, .14);
+    --radius: 14px;
+    --radius-s: 10px;
+    --top-h: 60px;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(1200px 500px at 80% -10%, rgba(255, 43, 61, .08), transparent 60%),
+        var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow: hidden;
+    /* Ngăn chọn văn bản khi bấm nhanh nhiều lần */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+button, input, select {
+    font-family: inherit;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .14);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, .22);
+}
+
+/* =====================================================
+   TOP BAR + TABS
+===================================================== */
+
+.top {
+    height: var(--top-h);
+    background: rgba(15, 18, 26, .92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    z-index: 30;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    user-select: none;
+    margin-right: 6px;
+}
+
+.brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ff4d5e, #b00b18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    box-shadow: 0 4px 14px rgba(255, 43, 61, .35);
+}
+
+.brand-name {
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: .4px;
+    white-space: nowrap;
+}
+
+.brand-name span {
+    color: var(--accent);
+}
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid var(--border);
+    padding: 4px;
+    border-radius: 12px;
+}
+
+.tab {
+    border: 0;
+    padding: 9px 18px;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 600;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+}
+
+.tab:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, .06);
+}
+
+.tab.active {
+    background: linear-gradient(135deg, #ff4d5e, #d90d20);
+    color: #fff;
+    box-shadow: 0 3px 12px rgba(255, 43, 61, .35);
+}
+
+/* =====================================================
+   MAIN LAYOUT
+===================================================== */
+
+.main {
+    height: calc(100vh - var(--top-h));
+    display: flex;
+}
+
+/* =====================================================
+   LEFT: DANH SACH
+===================================================== */
+
+.left {
+    width: 400px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 14px;
+}
+
+/* An danh sach ben trai mo rong khung video (chat mo rong theo). */
+.left.hidden {
+    display: none;
+}
+
+.left::-webkit-scrollbar {
+    width: 6px;
+}
+
+.left::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .12);
+}
+
+/* Filter hang (legacy football) */
+.football-filters {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 12px;
+}
+
+.filter-btn {
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 12px;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.filter-btn.active {
+    background: var(--accent-soft);
+    border-color: rgba(255, 43, 61, .4);
+    color: #ff8a94;
+}
+
+/* Nguon (chips) */
+.groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 14px;
+}
+
+.group {
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 18px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background .15s, color .15s, border-color .15s, transform .1s;
+}
+
+.group:hover {
+    background: rgba(255, 255, 255, .1);
+    color: var(--text);
+    transform: translateY(-1px);
+}
+
+.group.active {
+    background: linear-gradient(135deg, #ff4d5e, #d90d20);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(255, 43, 61, .3);
+}
+
+.source-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+/* Card tran (football quoc te - legacy) */
+.match {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .12s;
+}
+
+.match:hover {
+    background: #1a1f2c;
+    border-color: var(--border-2);
+    transform: translateY(-1px);
+}
+
+.match.selected {
+    border-color: rgba(255, 43, 61, .65);
+    background: #1a1620;
+    box-shadow: 0 0 0 1px rgba(255, 43, 61, .25), 0 6px 18px rgba(255, 43, 61, .08);
+}
+
+.match-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.match-time {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #ff5563;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: livePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
+}
+
+.match-name {
+    font-size: 15.5px;
+    line-height: 1.4;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 9px;
+}
+
+.match-source {
+    color: var(--text-mute);
+    font-size: 11.5px;
+    margin-bottom: 9px;
+}
+
+.match-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-mute);
+    font-size: 11.5px;
+}
+
+.match-blv-count {
+    color: var(--text-dim);
+}
+
+.watch-text {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+/* Card tran (bong da VN) */
+.vn-match-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .12s;
+}
+
+.vn-match-card:hover {
+    background: #1a1f2c;
+    border-color: var(--border-2);
+    transform: translateY(-1px);
+}
+
+.vn-match-card.selected {
+    border-color: rgba(255, 43, 61, .65);
+    background: #1a1620;
+}
+
+.vn-match-logo {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    background: rgba(255, 255, 255, .05);
+    border-radius: 10px;
+    flex-shrink: 0;
+    padding: 4px;
+}
+
+.vn-match-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.vn-match-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.vn-match-time {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.vn-match-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.4;
+}
+
+.vn-match-foot {
+    margin-top: 6px;
+    color: var(--text-mute);
+    font-size: 11.5px;
+}
+
+/* Kenh TV */
+.channel {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    background: var(--card);
+    border: 1px solid var(--border);
+    transition: background .15s, border-color .15s;
+}
+
+.channel:hover {
+    background: #1c212e;
+    border-color: var(--border-2);
+}
+
+.logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    background: rgba(255, 255, 255, .05);
+    border-radius: 9px;
+    padding: 3px;
+    flex-shrink: 0;
+}
+
+.logo-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    font-weight: 800;
+    font-size: 17px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff4d5e, #8e0d18);
+    border-radius: 9px;
+}
+
+.channel-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Skeleton */
+.skeleton {
+    pointer-events: none;
+}
+
+.sk-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, .07);
+    animation: sk-pulse 1.4s ease-in-out infinite;
+}
+
+.sk-line {
+    height: 13px;
+    flex: 1;
+    max-width: 60%;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, .07);
+    animation: sk-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes sk-pulse {
+
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+}
+
+/* =====================================================
+   RIGHT + PLAYER
+===================================================== */
+
+.right {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.player-box {
+    width: 100%;
+    background: #000;
+    position: relative;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    /* Giữ tỉ lệ 16:9 mặc định nhưng cho phép thay đổi */
+    aspect-ratio: 16 / 9;
+}
+
+.video-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+    object-fit: contain; /* Đảm bảo không bị dải đen nếu khung bọc vừa khít */
+    transition: object-fit .15s ease, transform .15s ease;
+}
+
+/* =====================================================
+   TỈ LỆ KHUNG HÌNH (chọn từ nút ở thanh điều khiển)
+   fit      : giữ nguyên tỉ lệ, thấy toàn bộ hình (mặc định)
+   fill     : giữ tỉ lệ, phủ kín khung, cắt 2 bên/trên dưới
+   stretch  : kéo dãn kín khung, méo hình
+   16:9 | 4:3 | 21:9 : ép khung hình theo tỉ lệ chuẩn
+   ===================================================== */
+
+.video-wrapper {
+    overflow: hidden;
+}
+
+.player-box.aspect-fill video,
+.player-box.aspect-stretch video,
+.player-box.aspect-16-9 video,
+.player-box.aspect-4-3 video,
+.player-box.aspect-21-9 video {
+    /* Bỏ giới hạn tự nhiên để video luôn lấp đầy khung */
+    max-width: none;
+    max-height: none;
+    width: 100%;
+    height: 100%;
+}
+
+.player-box.aspect-fill video {
+    object-fit: cover;
+}
+
+.player-box.aspect-stretch video {
+    object-fit: fill;
+}
+
+/* Ép tỉ lệ thiết bị: wrapper thành khung đúng tỉ lệ, video phủ kín khung đó.
+   Viewport có thể không đúng 16:9/4:3 (tỉ lệ AMBIGUOUS) -> dùng
+   JS gán --ar-* cho từng khung theo kích thước thực của player-box. */
+.player-box.aspect-16-9 .video-wrapper,
+.player-box.aspect-4-3 .video-wrapper,
+.player-box.aspect-21-9 .video-wrapper {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    aspect-ratio: var(--ar-value, 16 / 9);
+    width: var(--ar-width, 100%);
+    height: var(--ar-height, 100%);
+}
+
+.player-box.aspect-16-9 video,
+.player-box.aspect-4-3 video,
+.player-box.aspect-21-9 video {
+    object-fit: cover;
+}
+
+/* Trong fullscreen wrapper phủ kín màn hình thật (trừ khi đang ép tỉ lệ:
+   rule ép tỉ lệ ở trên áp dụng cho từng tỉ lệ cụ thể nên không bị ghi đè;
+   khi đó chỉ cần bỏ khung 100vw/100vh của fullscreen). */
+
+.player-actions {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    padding: 34px 12px 10px;
+    background: linear-gradient(transparent, rgba(5, 6, 10, .82));
+    transition: opacity .25s ease, visibility .25s ease;
+}
+
+/* Tu dong an thanh dieu khien khi dang phat + khong tuong tac */
+.player-box.controls-hidden .player-actions {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.player-box.controls-hidden {
+    cursor: none;
+}
+
+.progress-bar {
+    position: relative;
+    height: 22px;
+    margin-bottom: 4px;
+}
+
+.progress-fill {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #ff4d5e, #d90d20);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.progress-track {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 22px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    accent-color: var(--accent);
+    cursor: pointer;
+    touch-action: none;
+}
+
+.progress-track:disabled {
+    cursor: default;
+}
+
+.progress-track::-webkit-slider-runnable-track {
+    height: 22px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
+.progress-track::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: 4px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 5px rgba(0, 0, 0, .7);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.progress-track::-moz-range-track {
+    height: 22px;
+    border: 0;
+    background: transparent;
+}
+
+.progress-track::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 5px rgba(0, 0, 0, .7);
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.player-action,
+.speed-select,
+.quality-select {
+    flex-shrink: 0;
+    height: 32px;
+    border: 0;
+    border-radius: 9px;
+    background: rgba(22, 26, 36, .78);
+    color: #dfe3ea;
+    padding: 0 10px;
+    cursor: pointer;
+    font-size: 12px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: background .15s;
+}
+
+.player-action:hover,
+.speed-select:hover {
+    background: rgba(58, 66, 84, .95);
+}
+
+.quality-select {
+    max-width: 82px;
+}
+
+.icon-button {
+    width: 34px;
+    min-width: 34px;
+    padding: 0;
+    font-size: 16px;
+}
+
+.time-label {
+    flex-shrink: 0;
+    min-width: 0;
+    color: #e8ebf2;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.control-spacer {
+    flex: 1 1 auto;
+    min-width: 4px;
+}
+
+/* Cum am luong */
+.volume-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(22, 26, 36, .78);
+    padding: 0 8px 0 2px;
+}
+
+.volume-group .player-action {
+    background: transparent;
+    height: 30px;
+}
+
+.volume-range {
+    display: block;
+    box-sizing: border-box;
+    width: 64px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    accent-color: #fff;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.volume-range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, .35);
+}
+
+.volume-range::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.volume-range::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, .35);
+}
+
+.volume-range::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.player-action.live {
+    color: #ff5360;
+    font-weight: 800;
+}
+
+/* Toan man hinh */
+.player-box:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-height: none;
+    aspect-ratio: auto;
+}
+
+.player-box:-webkit-full-screen {
+    width: 100vw;
+    height: 100vh;
+    max-height: none;
+    aspect-ratio: auto;
+}
+
+/* Fullscreen: giữ thanh điều khiển nằm trong vùng nhìn thấy */
+.player-box:fullscreen .player-actions,
+.player-box:-webkit-full-screen .player-actions {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+/* Fallback fullscreen kiểu "giả" cho trình duyệt không hỗ trợ
+   (vd. iframe không allow=fullscreen) -> vẫn phủ kín màn hình. */
+.player-box.pseudo-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    width: 100vw;
+    height: 100vh;
+    aspect-ratio: auto;
+    max-height: none;
+    border: 0;
+}
+
+/* Khoá cuộn trang khi dùng fullscreen "giả" */
+html.pseudo-fullscreen-lock,
+html.pseudo-fullscreen-lock body {
+    overflow: hidden !important;
+}
+
+/* Nút chọn tỉ lệ khung hình chỉ hiện khi fullscreen */
+#aspectSelect {
+    max-width: 104px;
+}
+
+.player-box:not(:fullscreen):not(:-webkit-full-screen):not(.pseudo-fullscreen) #aspectSelect {
+    display: none;
+}
+
+/* Màn hình hẹp: thu gọn nút chọn tỉ lệ */
+@media (max-width: 800px) {
+    #aspectSelect {
+        max-width: 74px;
+        padding: 0 4px;
+        font-size: 11px;
+    }
+}
+
+/* =====================================================
+   INFO + BLV + ERROR
+===================================================== */
+
+.info {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 5px;
+    line-height: 1.35;
+}
+
+.status {
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.current-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 9px;
+    padding: 6px 11px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.current-source img {
+    width: 17px;
+    height: 17px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.blv-panel {
+    margin-top: 15px;
+    padding-top: 13px;
+    border-top: 1px solid var(--border);
+}
+
+.blv-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.blv-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.blv-button {
+    border: 1px solid var(--border-2);
+    background: var(--panel-2);
+    color: #dfe3ea;
+    padding: 9px 13px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background .15s, border-color .15s;
+}
+
+.blv-button:hover {
+    background: #242a38;
+    border-color: rgba(255, 255, 255, .22);
+}
+
+.blv-button.active {
+    background: linear-gradient(135deg, #ff4d5e, #d90d20);
+    border-color: transparent;
+    color: #fff;
+}
+
+.error {
+    color: #ff5a64;
+    white-space: pre-wrap;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+.empty {
+    padding: 34px 10px;
+    text-align: center;
+    color: var(--text-mute);
+    font-size: 13px;
+}
+
+/* =====================================================
+   CHAT CHUNG
+===================================================== */
+
+.chat-fab {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 60;
+    width: 54px;
+    height: 54px;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 23px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff4d5e, #b00b18);
+    box-shadow: 0 8px 24px rgba(255, 43, 61, .4);
+    transition: transform .15s;
+}
+
+.chat-fab:hover {
+    transform: scale(1.06);
+}
+
+.chat-panel {
+    position: fixed;
+    right: 18px;
+    bottom: 84px;
+    z-index: 61;
+    width: 340px;
+    height: min(480px, calc(100vh - 170px));
+    display: none;
+    flex-direction: column;
+    background: rgba(17, 20, 30, .97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-2);
+    border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
+    overflow: hidden;
+}
+
+.chat-panel.open {
+    display: flex;
+}
+
+.chat-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, .03);
+}
+
+.chat-head-title {
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.chat-head-title small {
+    display: block;
+    color: var(--text-mute);
+    font-weight: 500;
+    font-size: 10.5px;
+    margin-top: 2px;
+}
+
+#chatNameInput {
+    width: 110px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 11.5px;
+    outline: none;
+}
+
+#chatNameInput:focus {
+    border-color: rgba(255, 43, 61, .5);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.chat-msg {
+    max-width: 88%;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 7px 11px;
+    font-size: 13px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.chat-msg b {
+    display: block;
+    font-size: 11px;
+    color: #ff8a94;
+    margin-bottom: 2px;
+}
+
+.chat-msg.self {
+    align-self: flex-end;
+    background: linear-gradient(135deg, rgba(255, 77, 94, .25), rgba(217, 13, 32, .18));
+    border-color: rgba(255, 43, 61, .35);
+}
+
+.chat-msg.self b {
+    color: #ffb3ba;
+}
+
+.chat-empty {
+    color: var(--text-mute);
+    font-size: 12px;
+    text-align: center;
+    padding: 18px 8px;
+}
+
+.chat-form {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid var(--border);
+    background: rgba(255, 255, 255, .03);
+}
+
+#chatInput {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    outline: none;
+}
+
+#chatInput:focus {
+    border-color: rgba(255, 43, 61, .5);
+}
+
+.chat-send {
+    border: 0;
+    border-radius: 10px;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+    background: linear-gradient(135deg, #ff4d5e, #d90d20);
+    box-shadow: 0 4px 12px rgba(255, 43, 61, .3);
+}
+
+/* =====================================================
+   CHAT LUA CHAN - CỘT PHẢI (giong web xem bong da)
+===================================================== */
+
+.chat-rail {
+    display: none;
+    width: 320px;
+    flex-shrink: 0;
+    flex-direction: column;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.chat-rail.open {
+    display: flex;
+}
+
+.chat-rail .chat-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, .03);
+}
+
+.chat-rail .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.chat-rail .chat-form {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid var(--border);
+    background: rgba(255, 255, 255, .03);
+}
+
+/* Nut chat tren thanh dau trang */
+.chat-top-btn {
+    margin-left: auto;
+    border: 1px solid var(--border-2);
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 9px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: background .15s, border-color .15s;
+}
+
+.chat-top-btn:hover {
+    background: #242a38;
+    border-color: rgba(255, 43, 61, .5);
+}
+
+.chat-top-btn.active {
+    background: linear-gradient(135deg, #ff4d5e, #d90d20);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 3px 12px rgba(255, 43, 61, .35);
+}
+
+/* Man hinh hep: khong an chat nua — chi thu nho cot chat lai
+   (Windows zoom 125–150% lam rong CSS giam nhieu, an chat di
+   se khien nguoi dung khong thay chat — dung thu nho thay vi an). */
+@media(max-width: 1200px) {
+
+    .chat-rail {
+        width: 260px;
+    }
+
+    .chat-rail .chat-messages {
+        padding: 9px;
+    }
+}
+
+@media(max-width: 900px) {
+
+    /* Mobile: main xep doc -> chat chuyen thanh bang ngang duoi video */
+    .main {
+        flex-direction: column;
+    }
+
+    .chat-rail {
+        width: 100%;
+        height: 300px;
+        border-left: 0;
+        border-top: 1px solid var(--border);
+        order: 10;
+    }
+
+    .chat-rail .chat-head-title small {
+        display: none;
+    }
+
+    #chatNameInput {
+        width: 84px;
+    }
+}
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media(max-width: 800px) {
+
+    body {
+        overflow: auto;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .top {
+        height: auto;
+        min-height: 56px;
+        padding: 8px 10px;
+        gap: 8px;
+        position: sticky;
+        top: 0;
+    }
+
+    .brand-name {
+        display: none;
+    }
+
+    .brand {
+        margin-right: 0;
+    }
+
+    .tabs {
+        flex: 1;
+        gap: 4px;
+    }
+
+    .tab {
+        flex: 1;
+        padding: 11px 6px;
+        font-size: 12.5px;
+        border-radius: 9px;
+        min-height: 44px;
+    }
+
+    .main {
+        height: auto;
+        min-height: calc(100vh - 56px);
+        flex-direction: column;
+    }
+
+    .right {
+        order: 1;
+        overflow: visible;
+    }
+
+    .player-box {
+        max-height: none;
+        aspect-ratio: 16 / 9;
+        z-index: 9;
+        position: relative;
+        width: 100%;
+    }
+
+    /* Video lap day khung 16:9 thay vi tu dong kich thuoc */
+    .player-box video {
+        width: 100%;
+        height: 100%;
+    }
+
+    .player-actions {
+        padding: 16px 8px 8px;
+        overflow-x: hidden;
+        overflow-y: visible;
+    }
+
+    .progress-bar {
+        height: 28px;
+        margin: 0 0 4px;
+    }
+
+    .progress-track {
+        height: 28px;
+    }
+
+    .progress-track::-webkit-slider-runnable-track {
+        height: 28px;
+    }
+
+    .progress-track::-webkit-slider-thumb {
+        width: 16px;
+        height: 16px;
+        margin-top: 6px;
+    }
+
+    .control-row {
+        gap: 4px;
+        flex-wrap: nowrap;
+        overflow: hidden;
+        padding-bottom: 0;
+    }
+
+    .control-row > * {
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    .control-row > .control-spacer {
+        flex: 1 1 auto;
+        min-width: 2px;
+    }
+
+    #speedSelect,
+    #qualitySelect {
+        display: none;
+    }
+
+    .player-action,
+    .speed-select,
+    .quality-select {
+        height: 34px;
+        padding: 0 9px;
+        font-size: 11.5px;
+    }
+
+    .icon-button {
+        width: 34px;
+        min-width: 34px;
+    }
+
+    #playButton,
+    #muteButton,
+    #liveButton,
+    #fullscreenButton,
+    #rewindButton,
+    #forwardButton {
+        flex-shrink: 0;
+    }
+
+    .time-label {
+        flex-shrink: 1;
+        font-size: 10px;
+        max-width: 92px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Volume popup doc nhu YouTube */
+    .volume-group {
+        background: transparent;
+        padding: 0;
+        height: 34px;
+        position: relative;
+        overflow: visible;
+    }
+
+    .volume-group .volume-range {
+        position: absolute;
+        right: -40px;
+        bottom: 100px;
+        display: none;
+        width: 110px;
+        height: 30px;
+        margin: 0;
+        padding: 0 10px;
+        border-radius: 8px;
+        background: rgba(10, 12, 18, .95);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, .6);
+        transform: rotate(-90deg);
+        touch-action: none;
+    }
+
+    .volume-group .volume-range::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, .35);
+    }
+
+    .volume-group .volume-range::-webkit-slider-thumb {
+        width: 14px;
+        height: 14px;
+        margin-top: -5px;
+        border: 0;
+        border-radius: 50%;
+        background: #fff;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .volume-group .volume-range::-moz-range-track {
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, .35);
+    }
+
+    .volume-group .volume-range::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border: 0;
+        border-radius: 50%;
+        background: #fff;
+    }
+
+    .volume-group.volume-open .volume-range {
+        display: block;
+    }
+
+    .volume-group .player-action {
+        background: rgba(22, 26, 36, .78);
+        width: 34px;
+        min-width: 34px;
+    }
+
+    /* Danh sach: phia duoi player, cuon trong khung rieng */
+    .left {
+        order: 2;
+        width: 100%;
+        height: calc(100vh - 60px);
+        max-height: calc(100vh - 60px);
+        overflow-y: auto;
+        border-right: 0;
+        border-top: 1px solid var(--border);
+        padding: 10px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .left::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .groups {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .group {
+        flex-shrink: 0;
+        padding: 10px 14px;
+        font-size: 12px;
+        min-height: 40px;
+    }
+
+    .match, .channel, .vn-match-card {
+        padding: 13px 12px;
+        min-height: 56px;
+    }
+
+    .match-name {
+        font-size: 14px;
+    }
+
+    .blv-buttons {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .blv-button {
+        flex-shrink: 0;
+        padding: 12px 16px;
+        min-height: 44px;
+        font-size: 13px;
+    }
+
+    .info {
+        padding: 12px 14px;
+    }
+
+    .title {
+        font-size: 17px;
+    }
+
+    .time-label {
+        min-width: 64px;
+        font-size: 10px;
+    }
+
+    .speed-select {
+        padding: 0 5px;
+        font-size: 12px;
+    }
+
+    /* Chat: sheet ngang man hinh */
+    .chat-panel {
+        left: 10px;
+        right: 10px;
+        width: auto;
+        bottom: 76px;
+        height: min(60vh, 440px);
+    }
+
+    .chat-fab {
+        width: 50px;
+        height: 50px;
+        right: 14px;
+        bottom: 14px;
+        font-size: 21px;
+    }
+
+    @media (max-width: 360px) {
+
+        #rewindButton,
+        #forwardButton {
+            display: none;
+        }
+    }
+}
+
+/* Man hinh rat nho */
+@media(max-width: 400px) {
+
+    .player-actions {
+        padding: 14px 6px 6px;
+    }
+
+    .control-row {
+        gap: 4px;
+    }
+
+    .player-action,
+    .speed-select,
+    .quality-select {
+        height: 36px;
+        min-width: 36px;
+        font-size: 12px;
+    }
+
+    .icon-button {
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+    }
+
+    .time-label {
+        min-width: 58px;
+        font-size: 10px;
+    }
+
+    .quality-select {
+        max-width: 88px;
+    }
+}
+
+
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- ===================================================
+     TOP
+=================================================== -->
+
+<div class="top">
+
+    <div class="brand">
+
+        <div class="brand-mark">📡</div>
+
+        <div class="brand-name">TV<span>360</span></div>
+
+    </div>
+
+    <div class="tabs">
+
+        <button
+            id="vnFootballTab"
+            class="tab active"
+            onclick="switchMode('vnfootball')"
+        >
+            🇻🇳 Bóng đá VN
+        </button>
+
+        <button
+            id="tvTab"
+            class="tab"
+            onclick="switchMode('tv')"
+        >
+            📺 TV
+        </button>
+
+    </div>
+
+    <button
+        id="chatToggle"
+        class="chat-top-btn"
+        type="button"
+        title="Bật/tắt khung chat bình luận"
+    >💬 Chat</button>
+
+</div>
+
+
+<!-- ===================================================
+     MAIN
+=================================================== -->
+
+<div class="main">
+
+
+    <!-- LEFT -->
+
+    <div class="left hidden">
+
+        <div
+            id="footballFilters"
+            class="football-filters"
+        >
+
+            <button
+                id="liveFilter"
+                class="filter-btn active"
+            >
+                🔴 ĐANG ĐÁ
+            </button>
+
+        </div>
+
+
+        <!-- SOURCE -->
+
+        <div
+            id="groups"
+            class="groups"
+        ></div>
+
+
+        <!-- MATCH / TV LIST -->
+
+        <div
+            id="list"
+        ></div>
+
+    </div>
+
+
+    <!-- RIGHT -->
+
+        <div class="right">
+
+        <div class="player-box" id="playerBox">
+
+            <div class="video-wrapper">
+                <video
+                    id="video"
+                    autoplay
+                    playsinline
+                    webkit-playsinline
+                ></video>
+            </div>
+
+            <div class="player-actions">
+
+                <div
+                    id="progressBar"
+                    class="progress-bar"
+                >
+
+                    <div
+                        id="progressFill"
+                        class="progress-fill"
+                    ></div>
+
+                    <input
+                        id="progressTrack"
+                        class="progress-track"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="0"
+                        step="0.1"
+                        aria-label="Tiến trình phát"
+                    >
+
+                </div>
+
+                <div class="control-row">
+
+                    <button
+                        id="playButton"
+                        class="player-action icon-button"
+                        type="button"
+                        title="Phát hoặc tạm dừng"
+                    >
+                        ▶
+                    </button>
+
+                <button
+                    id="rewindButton"
+                    class="player-action icon-button"
+                    type="button"
+                    title="Tua lui 10 giây"
+                >
+                    ↶
+                </button>
+
+                <button
+                    id="forwardButton"
+                    class="player-action icon-button"
+                    type="button"
+                    title="Tua tới 10 giây"
+                >
+                    ↷
+                </button>
+
+                <span
+                    id="timeLabel"
+                    class="time-label"
+                >
+                    00:00 / LIVE
+                </span>
+
+                <div class="control-spacer"></div>
+
+                <div class="volume-group">
+
+                    <button
+                        id="muteButton"
+                        class="player-action icon-button"
+                        type="button"
+                        title="Tắt tiếng"
+                    >
+                        🔊
+                    </button>
+
+                    <input
+                        id="volumeRange"
+                        class="volume-range"
+                        type="range"
+                        min="0"
+                        max="1"
+                        value="1"
+                        step="0.05"
+                        aria-label="Âm lượng"
+                    >
+
+                </div>
+
+                <button
+                    id="liveButton"
+                    class="player-action live"
+                    type="button"
+                    title="Về vị trí trực tiếp"
+                >
+                    LIVE
+                </button>
+
+                <select
+                    id="speedSelect"
+                    class="speed-select"
+                    title="Tốc độ phát"
+                >
+                    <option value="1">1x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                </select>
+
+                <select
+                    id="qualitySelect"
+                    class="quality-select"
+                    title="Chất lượng video"
+                    disabled
+                >
+                    <option value="auto">Auto</option>
+                </select>
+
+                <select
+                    id="aspectSelect"
+                    class="quality-select"
+                    title="Tỉ lệ khung hình (chỉ hiện khi toàn màn hình)"
+                    aria-label="Tỉ lệ khung hình"
+                >
+                    <option value="fit" selected>Vừa khung</option>
+                    <option value="fill">Phủ kín</option>
+                    <option value="stretch">Kéo dãn</option>
+                    <option value="16:9">16:9</option>
+                    <option value="4:3">4:3</option>
+                    <option value="21:9">21:9</option>
+                </select>
+
+                <button
+                    id="fullscreenButton"
+                    class="player-action icon-button"
+                    type="button"
+                    title="Toàn màn hình"
+                >
+                    ⛶
+                </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="info">
+
+            <div
+                id="title"
+                class="title"
+            >
+                Chưa chọn trận
+            </div>
+
+
+            <div
+                id="status"
+                class="status"
+            >
+                Chọn nguồn và bấm vào một trận để phát
+            </div>
+
+
+            <div
+                id="currentSource"
+                class="current-source"
+                style="display:none"
+            ></div>
+
+
+            <div
+                id="blvPanel"
+                class="blv-panel"
+                style="display:none"
+            >
+
+                <div class="blv-label">
+                    📺 KÊNH THỂ THAO
+                </div>
+
+
+                <div
+                    id="blvButtons"
+                    class="blv-buttons"
+                ></div>
+
+            </div>
+
+
+            <div
+                id="error"
+                class="error"
+            ></div>
+
+        </div>
+
+    </div>
+
+    <!-- ============ CHAT LUA CHAN (cột phải, giong cac web xem bong da) ============ -->
+    <aside
+        id="chatPanel"
+        class="chat-rail open"
+>
+
+    <div class="chat-head">
+
+        <div class="chat-head-title">
+            💬 Chat bình luận
+            <small>Cùng bàn luận về trận đấu</small>
+        </div>
+
+        <input
+            id="chatNameInput"
+            type="text"
+            maxlength="20"
+            placeholder="Tên của bạn"
+            title="Đổi tên hiển thị"
+        >
+
+        <button
+            class="chat-close"
+            type="button"
+            title="Đóng chat"
+            onclick="chatSetOpen(false)"
+        >✕</button>
+
+    </div>
+
+    <div
+        id="chatMessages"
+        class="chat-messages"
+    >
+        <div class="chat-empty">
+            Chưa có bình luận nào.<br>Hãy là người đầu tiên bình luận! ⚽
+        </div>
+    </div>
+
+    <form
+        id="chatForm"
+        class="chat-form"
+        autocomplete="off"
+    >
+
+    <input
+        id="chatInput"
+            type="text"
+            maxlength="300"
+            placeholder="Nhập bình luận..."
+        >
+        <button
+            class="chat-send"
+            type="submit"
+        >Gửi</button>
+    </form>
+
+</aside>
+
+</div>
+
+<script>
+
+let mode = "vnfootball";
+
+let allData = [];
+
+let tvData = [];
+
+let currentSource = "Tất cả";
+
+let currentMatch = null;
+
+let currentChannel = null;
+
+// Tab Bong da VN: website dang chon (null = dang o man chon website)
+let currentVnSite = null;
+
+// Tab Bong da VN: danh sach website + tran (tu API)
+let vnSites = [];
+
+// Tran dang phat trong tab Bong da VN (de chon doi luong)
+let currentVnMatch = null;
+
+let shakaPlayer = null;
+
+let currentDashUrl = "";
+
+let dashRecoveryAttempts = 0;
+
+let hlsPlayer = null;
+
+let mpegtsPlayer = null;
+
+let footballRefreshTimer = null;
+
+const streamCache = new Map();
+
+const STREAM_CACHE_TIME = 2 * 60 * 1000;
+
+// Link da biet chac la co khoa (ClearKey/Referer/UA rieng) -> khong
+// bao gio thu phat truc tiep nua, vao thang /api/resolve.
+const KEYED_URLS = new Set();
+
+
+
+// Cache du lieu playlist theo mode o phia client.
+// Muc dich: khi nguoi dung bam qua lai giua 3 tab, khong goi lai
+// /api/channels lien tuc -> giam tai nguon & tang toc do.
+const playlistCache = new Map();
+
+const PLAYLIST_CACHE_TIME = 15 * 60 * 1000;
+
+
+// =====================================================
+// DOM
+// =====================================================
+
+const video =
+    document.getElementById(
+        "video"
+    );
+
+
+const list =
+    document.getElementById(
+        "list"
+    );
+
+
+const groups =
+    document.getElementById(
+        "groups"
+    );
+
+
+const title =
+    document.getElementById(
+        "title"
+    );
+
+
+const status =
+    document.getElementById(
+        "status"
+    );
+
+
+const errorBox =
+    document.getElementById(
+        "error"
+    );
+
+
+const blvPanel =
+    document.getElementById(
+        "blvPanel"
+    );
+
+
+const blvButtons =
+    document.getElementById(
+        "blvButtons"
+    );
+
+
+const footballFilters =
+    document.getElementById(
+        "footballFilters"
+    );
+
+
+const currentSourceBox =
+    document.getElementById(
+        "currentSource"
+    );
+
+
+const rewindButton =
+    document.getElementById(
+        "rewindButton"
+    );
+
+
+const forwardButton =
+    document.getElementById(
+        "forwardButton"
+    );
+
+
+const liveButton =
+    document.getElementById(
+        "liveButton"
+    );
+
+
+const speedSelect =
+    document.getElementById(
+        "speedSelect"
+    );
+
+
+const progressTrack =
+    document.getElementById(
+        "progressTrack"
+    );
+
+
+const progressBar =
+    document.getElementById(
+        "progressBar"
+    );
+
+
+const progressFill =
+    document.getElementById(
+        "progressFill"
+    );
+
+
+const playButton =
+    document.getElementById(
+        "playButton"
+    );
+
+
+const muteButton =
+    document.getElementById(
+        "muteButton"
+    );
+
+
+const volumeRange =
+    document.getElementById(
+        "volumeRange"
+    );
+
+
+const fullscreenButton =
+    document.getElementById(
+        "fullscreenButton"
+    );
+
+
+const qualitySelect =
+    document.getElementById(
+        "qualitySelect"
+    );
+
+
+const timeLabel =
+    document.getElementById(
+        "timeLabel"
+    );
+
+
+const playerBox =
+    document.querySelector(
+        ".player-box"
+    );
+
+
+const aspectSelect =
+    document.getElementById(
+        "aspectSelect"
+    );
+
+
+let controlsHideTimer = null;
+
+let progressDragging = false;
+
+
+function showPlayerControls() {
+    playerBox.classList.remove(
+        "controls-hidden"
+    );
+
+    clearTimeout(controlsHideTimer);
+
+    if (!video.paused && !progressDragging) {
+        controlsHideTimer = setTimeout(
+            () => playerBox.classList.add("controls-hidden"),
+            3500
+        );
+    }
+}
+
+
+function hidePlayerControlsSoon() {
+    clearTimeout(controlsHideTimer);
+
+    if (!video.paused && !progressDragging) {
+        controlsHideTimer = setTimeout(
+            () => {
+                playerBox.classList.add("controls-hidden");
+                closeVolumePopup();
+            },
+            3500
+        );
+    }
+}
+
+
+playerBox.addEventListener(
+    "mousemove",
+    showPlayerControls
+);
+
+
+playerBox.addEventListener(
+    "touchstart",
+    showPlayerControls,
+    { passive: true }
+);
+
+
+playerBox.addEventListener(
+    "mouseleave",
+    hidePlayerControlsSoon
+);
+
+
+playerBox.querySelector(
+    ".player-actions"
+).addEventListener(
+    "mouseenter",
+    () => clearTimeout(controlsHideTimer)
+);
+
+
+playerBox.querySelector(
+    ".player-actions"
+).addEventListener(
+    "mouseleave",
+    hidePlayerControlsSoon
+);
+
+
+function formatTime(seconds) {
+    if (!Number.isFinite(seconds)) {
+        return "00:00";
+    }
+
+    const total = Math.max(0, Math.floor(seconds));
+    const minutes = Math.floor(total / 60);
+    const remainder = total % 60;
+
+    return String(minutes).padStart(2, "0") +
+        ":" +
+        String(remainder).padStart(2, "0");
+}
+
+
+// Cua so tua hien tai. VOD: [0, duration]. Live co DVR:
+// [seekable.start, seekable.end]. Live khong DVR: hai dau bang nhau.
+function getSeekRange() {
+    const duration = video.duration;
+
+    if (Number.isFinite(duration) && duration > 0) {
+        return {
+            start: 0,
+            end: duration,
+            seekable: true
+        };
+    }
+
+    try {
+        if (video.seekable && video.seekable.length) {
+            const last = video.seekable.length - 1;
+            const start = video.seekable.start(0);
+            const end = video.seekable.end(last);
+
+            return {
+                start,
+                end,
+                seekable: end - start > 1
+            };
+        }
+    } catch {}
+
+    return {
+        start: 0,
+        end: 0,
+        seekable: false
+    };
+}
+
+function updateVideoControls() {
+    const current = video.currentTime;
+    const range = getSeekRange();
+    const span = range.end - range.start;
+
+    if (range.seekable && span > 0) {
+        const percent = Math.min(
+            100,
+            Math.max(0, ((current - range.start) / span) * 100)
+        );
+
+        progressTrack.disabled = false;
+        progressBar.classList.remove("disabled");
+
+        // Dang keo tay thi khong ghi de vi tri nguoi dung dang chon.
+        if (!progressDragging) {
+            progressTrack.value = String(percent);
+        }
+
+        progressFill.style.width = percent + "%";
+
+        if (Number.isFinite(video.duration) && video.duration > 0) {
+            timeLabel.textContent =
+                formatTime(current) +
+                " / " +
+                formatTime(video.duration);
+        } else {
+            // Live: hien thi thoi gian tuong doi tu goc cua so tua.
+            const relCurrent = current - range.start;
+
+            timeLabel.textContent =
+                formatTime(relCurrent > 0 ? relCurrent : 0) + " / LIVE";
+        }
+    } else {
+        // Live khong co cua so tua (DVR): vo hieu thanh tua, chi hien LIVE.
+        progressTrack.disabled = true;
+        progressBar.classList.add("disabled");
+        progressFill.style.width = "0%";
+        timeLabel.textContent = "LIVE";
+    }
+
+    playButton.textContent = video.paused ? "▶" : "❚❚";
+    muteButton.textContent = video.muted ? "🔇" : "🔊";
+}
+
+
+// Voi live (thoi luong vo han) chi duoc tua TRONG cua so seekable.
+// Dat currentTime ngoai cua so se bi trinh duyet keo moc ve live -> hien
+// tuong video "tu dung"/nhay hinh. Vi vay luon kep moc tua vao cua so hop le.
+function clampToSeekable(time) {
+    try {
+        if (video.seekable && video.seekable.length) {
+            let best = null;
+
+            for (let i = 0; i < video.seekable.length; i++) {
+                const start = video.seekable.start(i);
+                const end = video.seekable.end(i);
+
+                if (time >= start && time <= end) {
+                    return time;
+                }
+
+                if (
+                    best === null ||
+                    Math.abs(start - time) < Math.abs(best - time)
+                ) {
+                    best = start;
+                }
+
+                if (Math.abs(end - time) < Math.abs(best - time)) {
+                    best = end;
+                }
+            }
+
+            if (best !== null) {
+                return best;
+            }
+        }
+    } catch {}
+
+    return time;
+}
+
+
+function seekTo(time) {
+    if (!Number.isFinite(time)) {
+        return;
+    }
+
+    try {
+        video.currentTime = Math.max(0, clampToSeekable(time));
+    } catch {}
+
+    updateVideoControls();
+}
+
+
+function resetQualityOptions() {
+    qualitySelect.innerHTML =
+        '<option value="auto">Auto</option>';
+    qualitySelect.value = "auto";
+    qualitySelect.disabled = true;
+}
+
+
+function addQualityOption(value, label) {
+    if (
+        [...qualitySelect.options]
+            .some(option => option.value === String(value))
+    ) {
+        return;
+    }
+
+    const option = document.createElement("option");
+    option.value = String(value);
+    option.textContent = label;
+    qualitySelect.appendChild(option);
+    qualitySelect.disabled = false;
+}
+
+
+function populateHlsQualities() {
+    resetQualityOptions();
+
+    if (!hlsPlayer || !hlsPlayer.levels.length) {
+        return;
+    }
+
+    try { hlsPlayer.config.capLevelToPlayerSize = false; } catch {}
+    try { hlsPlayer.autoLevelCapping = -1; } catch {}
+
+    const levels = hlsPlayer.levels
+        .map((level, index) => ({
+            index,
+            height: level.height || 0,
+            bitrate: level.bitrate || 0
+        }))
+        .sort((a, b) =>
+            b.height - a.height ||
+            b.bitrate - a.bitrate
+        );
+
+    levels.forEach(level => {
+            const label = level.height
+                ? level.height + "p • " +
+                    (level.bitrate / 1000000).toFixed(1) +
+                    " Mbps"
+                : Math.round(level.bitrate / 1000) + "k";
+
+            addQualityOption("hls:" + level.index, label);
+        });
+
+    if (levels.length > 1) {
+        addQualityOption("best", "Nét nhất");
+    }
+
+    syncHlsQualitySelection();
+}
+
+
+function syncHlsQualitySelection() {
+    if (!hlsPlayer) {
+        return;
+    }
+
+    const cur = hlsPlayer.currentLevel;
+    if (cur === -1 || cur === undefined || cur === null) {
+        qualitySelect.value = "auto";
+        return;
+    }
+    const manual = "hls:" + cur;
+    if ([...qualitySelect.options].some(o => o.value === manual)) {
+        qualitySelect.value = manual;
+    }
+}
+
+
+function populateShakaQualities() {
+    resetQualityOptions();
+
+    if (!shakaPlayer) {
+        return;
+    }
+
+    const variantTracks = shakaPlayer
+        .getVariantTracks()
+        .filter(track => track.height);
+
+    const tracks = [...variantTracks]
+        .sort((a, b) =>
+            b.height - a.height ||
+            b.bandwidth - a.bandwidth
+        );
+
+    tracks.forEach(track => {
+            const label = track.height + "p • " +
+                (track.bandwidth / 1000000).toFixed(1) +
+                " Mbps" + (track.audioBandwidth ? " • 🔊" : "");
+            addQualityOption("shaka-id:" + track.id, label);
+        });
+
+    if (tracks.length > 1) {
+        addQualityOption("best", "Nét nhất");
+    }
+    if (tracks.length <= 1) {
+        status.textContent += " • 1 mức chất lượng";
+    }
+}
+
+
+function findBestShakaTrack() {
+    if (!shakaPlayer) {
+        return null;
+    }
+
+    return shakaPlayer
+        .getVariantTracks()
+        .filter(track => track.height)
+        .sort((a, b) =>
+            b.height - a.height ||
+            b.bandwidth - a.bandwidth
+        )[0] || null;
+}
+
+
+function selectShakaTrack(track) {
+    if (!shakaPlayer || !track) {
+        return;
+    }
+
+    shakaPlayer.configure({
+        abr: {
+            enabled: false
+        }
+    });
+
+    shakaPlayer.selectVariantTrack(
+        track,
+        true
+    );
+}
+
+
+progressTrack.oninput =
+    () => {
+        progressDragging = true;
+        showPlayerControls();
+
+        const range = getSeekRange();
+
+        if (!range.seekable) {
+            return;
+        }
+
+        // Chua tua duoc (live khong co DVR) -> thanh tua dung yen.
+        const percent = Number(progressTrack.value);
+
+        progressFill.style.width = percent + "%";
+
+        seekTo(
+            range.start +
+            (range.end - range.start) * percent / 100
+        );
+    };
+
+
+// Ket thuc keo tua. Tren mobile su kien "change" co the ban ra tre hoac
+// khong ban ra, nen nghe them pointer/touch de tra progressDragging ve false
+// -> tranh thanh tua bi "ket" va khong tu cap nhat lai theo video.
+function endProgressDrag() {
+    if (!progressDragging) {
+        return;
+    }
+
+    progressDragging = false;
+
+    updateVideoControls();
+    hidePlayerControlsSoon();
+}
+
+
+progressTrack.addEventListener("change", endProgressDrag);
+
+progressTrack.addEventListener("pointerup", endProgressDrag);
+
+progressTrack.addEventListener("touchend", endProgressDrag);
+
+progressTrack.addEventListener("touchcancel", endProgressDrag);
+
+
+playButton.onclick =
+    async () => {
+        if (video.paused) {
+            await video.play();
+        } else {
+            video.pause();
+        }
+
+        showPlayerControls();
+    };
+
+
+function isMobileLayout() {
+
+    return window.matchMedia("(max-width: 860px)").matches;
+}
+
+
+function closeVolumePopup() {
+
+    const group =
+        document.querySelector(".volume-group");
+
+    group?.classList.remove("volume-open");
+}
+
+
+// =====================================================
+// TỈ LỆ KHUNG HÌNH
+// =====================================================
+
+const ASPECT_STORAGE_KEY = "tv360.aspect";
+
+const ASPECT_CLASSES = [
+    "aspect-fit",
+    "aspect-fill",
+    "aspect-stretch",
+    "aspect-16-9",
+    "aspect-4-3",
+    "aspect-21-9"
+];
+
+// Tỉ lệ số của các khung "ép tỉ lệ"
+const ASPECT_RATIOS = {
+    "16-9": 16 / 9,
+    "4-3": 4 / 3,
+    "21-9": 21 / 9
+};
+
+// Tính khung lớn nhất đúng tỉ lệ nằm gọn trong player-box
+function layoutAspectFrame() {
+    const wrap = playerBox.querySelector(".video-wrapper");
+    const cls = ASPECT_CLASSES.find(c => playerBox.classList.contains(c));
+    const ratio = cls ? ASPECT_RATIOS[cls.replace("aspect-", "")] : null;
+
+    const clear = el => {
+        if (!el) return;
+        el.style.removeProperty("--ar-value");
+        el.style.removeProperty("--ar-width");
+        el.style.removeProperty("--ar-height");
+    };
+
+    if (!ratio) {
+        clear(playerBox);
+        clear(wrap);
+        return;
+    }
+
+    // wrapper là con trực tiếp của player-box nên lấy số đo từ player-box.
+    // Khi đang fullscreen, player-box đã là cả màn hình -> đúng tỉ lệ.
+    const w = playerBox.clientWidth || 0;
+    const h = playerBox.clientHeight || 0;
+
+    let fw = w;
+    let fh = fw / ratio;
+
+    if (fh > h) {
+        fh = h;
+        fw = fh * ratio;
+    }
+
+    // Ghi lên chính wrapper: biến CSS khai báo trên wrapper luôn thắng
+    // biến kế thừa từ cha, tránh trường hợp giá trị cũ bị cache lại.
+    if (wrap) {
+        wrap.style.setProperty("--ar-value", ratio.toFixed(4));
+        wrap.style.setProperty("--ar-width", fw + "px");
+        wrap.style.setProperty("--ar-height", fh + "px");
+        clear(playerBox);
+        return;
+    }
+
+    playerBox.style.setProperty("--ar-value", ratio.toFixed(4));
+    playerBox.style.setProperty("--ar-width", fw + "px");
+    playerBox.style.setProperty("--ar-height", fh + "px");
+}
+
+window.addEventListener("resize", layoutAspectFrame);
+
+function applyAspect(value) {
+    // Giá trị <option> ("16:9") khác tên class ("aspect-16-9").
+    // Nhận luôn cả "16-9" / "16_9" cho chắc.
+    const normalized = String(value || "")
+        .trim()
+        .replace(/[:_]/g, "-");
+
+    const finalValue = ASPECT_CLASSES.includes("aspect-" + normalized)
+        ? normalized
+        : "fit";
+
+    playerBox.classList.remove(...ASPECT_CLASSES);
+    playerBox.classList.add("aspect-" + finalValue);
+    layoutAspectFrame();
+
+    if (aspectSelect && aspectSelect.value !== finalValue) {
+        aspectSelect.value = finalValue;
+    }
+
+    try {
+        localStorage.setItem(ASPECT_STORAGE_KEY, finalValue);
+    } catch {}
+
+    return finalValue;
+}
+
+if (aspectSelect) {
+    let savedAspect = "fit";
+
+    try {
+        savedAspect = localStorage.getItem(ASPECT_STORAGE_KEY) || "fit";
+    } catch {}
+
+    applyAspect(savedAspect);
+
+    // Gắn listener kiểu addEventListener (onchange cũ dưới đây có thể bị
+    // ghi đè nếu ai đó gán lại) -> luôn chạy.
+    aspectSelect.addEventListener("change", () => {
+        applyAspect(aspectSelect.value);
+        showPlayerControls();
+    });
+}
+
+
+// =====================================================
+// FULLSCREEN
+// =====================================================
+
+const isPseudoFullscreen = () =>
+    playerBox.classList.contains("pseudo-fullscreen");
+
+function enterPseudoFullscreen() {
+    playerBox.classList.add("pseudo-fullscreen");
+    document.documentElement.classList.add("pseudo-fullscreen-lock");
+}
+
+function exitPseudoFullscreen() {
+    playerBox.classList.remove("pseudo-fullscreen");
+    document.documentElement.classList.remove("pseudo-fullscreen-lock");
+}
+
+function syncFullscreenUi() {
+    const active =
+        document.fullscreenElement === playerBox ||
+        document.webkitFullscreenElement === playerBox ||
+        isPseudoFullscreen();
+
+    showPlayerControls();
+
+    // Tính lại khung "ép tỉ lệ" (16:9 / 4:3 / 21:9) theo màn hình mới,
+    // rồi gọi resize để shaka/hls tính lại kích thước -> tránh khung bị
+    // đặt sai tỉ lệ khi vừa vào/ra toàn màn hình.
+    layoutAspectFrame();
+
+    setTimeout(() => {
+        layoutAspectFrame();
+        window.dispatchEvent(new Event("resize"));
+    }, 120);
+
+    return active;
+}
+
+// Việc ẩn/hiện nút chọn tỉ lệ do CSS lo; ở đây chỉ đồng bộ lại
+// UI (thanh điều khiển, kích thước) khi trạng thái fullscreen đổi.
+const onFullscreenChange = () => syncFullscreenUi();
+
+document.addEventListener("fullscreenchange", onFullscreenChange);
+document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+
+// Esc khi dùng pseudo-fullscreen
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && isPseudoFullscreen()) {
+        exitPseudoFullscreen();
+        syncFullscreenUi();
+    }
+});
+
+
+muteButton.onclick =
+    () => {
+        // Mobile: bam loa lan dau -> mo popup volume doc de keo chinh
+        // am luong (thanh ngang da bi an cho gon). Bam tiep khi popup
+        // dang mo -> tat/mo tieng nhu cu.
+        if (isMobileLayout()) {
+            const group =
+                muteButton.closest(".volume-group");
+
+            if (
+                group &&
+                !group.classList.contains("volume-open")
+            ) {
+                group.classList.add("volume-open");
+                return;
+            }
+
+            group?.classList.remove("volume-open");
+        }
+
+        video.muted = !video.muted;
+        updateVideoControls();
+    };
+
+
+volumeRange.oninput =
+    () => {
+        video.volume = Number(volumeRange.value);
+        video.muted = video.volume === 0;
+        updateVideoControls();
+    };
+
+
+volumeRange.addEventListener(
+    "pointerdown",
+    event => event.stopPropagation()
+);
+
+
+volumeRange.addEventListener(
+    "touchstart",
+    event => event.stopPropagation(),
+    { passive: true }
+);
+
+
+// Bam ra ngoai popup volume thi dong lai (khong mute/unmute nham).
+document.addEventListener(
+    "pointerdown",
+    event => {
+        const group =
+            document.querySelector(".volume-group");
+
+        if (
+            group &&
+            group.classList.contains("volume-open") &&
+            !group.contains(event.target)
+        ) {
+            group.classList.remove("volume-open");
+        }
+    }
+);
+
+
+function exitPlayerFullscreen() {
+    if (isPseudoFullscreen()) {
+        exitPseudoFullscreen();
+        syncFullscreenUi();
+        return true;
+    }
+
+    if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+        return true;
+    }
+
+    if (document.webkitFullscreenElement) {
+        document.webkitExitFullscreen?.();
+        return true;
+    }
+
+    return false;
+}
+
+fullscreenButton.onclick =
+    async () => {
+        try {
+            // 1. Thoát fullscreen nếu đang mở
+            if (exitPlayerFullscreen()) {
+                return;
+            }
+
+            // 2. Fullscreen cả cụm player-box để giữ thanh điều khiển tuỳ biến
+            const box = playerBox;
+
+            try {
+                if (box.requestFullscreen) {
+                    await box.requestFullscreen({ navigationUI: "hide" });
+                    syncFullscreenUi();
+                    return;
+                }
+
+                if (box.webkitRequestFullscreen) {
+                    await box.webkitRequestFullscreen();
+                    syncFullscreenUi();
+                    return;
+                }
+            } catch (err) {
+                // iOS Safari trên iPhone không fullscreen được <div>,
+                // iframe thiếu allow="fullscreen" cũng bị từ chối.
+                console.warn("requestFullscreen bị từ chối:", err);
+            }
+
+            // 3. Fallback cho iOS Safari (chỉ fullscreen được thẻ video)
+            if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen();
+                return;
+            }
+
+            // 4. Fallback cuối: fullscreen "giả" bằng CSS, vẫn giữ control
+            enterPseudoFullscreen();
+            syncFullscreenUi();
+        } catch (e) {
+            console.warn("Fullscreen error:", e);
+        }
+    };
+
+
+qualitySelect.onchange =
+    () => {
+        const value = qualitySelect.value;
+
+        if (value === "auto") {
+            if (hlsPlayer) {
+                hlsPlayer.currentLevel = -1;
+            }
+
+            if (shakaPlayer) {
+                shakaPlayer.configure({
+                    abr: {
+                        enabled: true
+                    }
+                });
+            }
+
+            return;
+        }
+
+        if (value === "best") {
+            if (hlsPlayer) {
+                const best = hlsPlayer.levels
+                    .map((level, index) => ({
+                        index,
+                        height: level.height || 0,
+                        bitrate: level.bitrate || 0
+                    }))
+                    .sort((a, b) =>
+                        b.height - a.height ||
+                        b.bitrate - a.bitrate
+                    )[0];
+
+                if (best) {
+                    try { hlsPlayer.autoLevelCapping = -1; } catch {}
+                    hlsPlayer.nextLevel = best.index;
+                    hlsPlayer.currentLevel = best.index;
+                    try { hlsPlayer.loadLevel = best.index; } catch {}
+                    qualitySelect.value = "best";
+                    status.textContent = "🔴 Đang phát • khóa " + (best.height ? best.height + "p" : "nét nhất");
+                }
+            }
+
+            if (shakaPlayer) {
+                const bestTrack = findBestShakaTrack();
+                selectShakaTrack(bestTrack);
+                if (bestTrack) {
+                    qualitySelect.value = "best";
+                    status.textContent = "🔴 Đang phát • khóa " + bestTrack.height + "p";
+                }
+            }
+
+            return;
+        }
+
+        if (
+            value.startsWith("shaka-id:") &&
+            shakaPlayer
+        ) {
+            const id = Number(value.slice("shaka-id:".length));
+            const track = shakaPlayer
+                .getVariantTracks()
+                .find(item => item.id === id);
+
+            if (track) {
+                selectShakaTrack(track);
+                qualitySelect.value = value;
+                status.textContent = "🔴 Đang phát • khóa " + track.height + "p";
+            }
+
+            return;
+        }
+
+        if (value.startsWith("hls:") && hlsPlayer) {
+            const levelIndex = Number(value.slice("hls:".length));
+            if (
+                Number.isInteger(levelIndex) &&
+                hlsPlayer.levels[levelIndex]
+            ) {
+                try { hlsPlayer.autoLevelCapping = -1; } catch {}
+                hlsPlayer.nextLevel = levelIndex;
+                hlsPlayer.currentLevel = levelIndex;
+                try { hlsPlayer.loadLevel = levelIndex; } catch {}
+                qualitySelect.value = value;
+                const lv = hlsPlayer.levels[levelIndex];
+                status.textContent = "🔴 Đang phát • khóa " + (lv.height ? lv.height + "p" : (lv.bitrate/1000) + "k");
+            }
+            return;
+        }
+    };
+
+
+video.addEventListener(
+    "loadeddata",
+    () => {
+        if (hlsPlayer) {
+            syncHlsQualitySelection();
+        }
+    }
+);
+
+
+[
+    "timeupdate",
+    "durationchange",
+    "loadedmetadata",
+    "play",
+    "pause",
+    "volumechange"
+].forEach(eventName => {
+    video.addEventListener(eventName, updateVideoControls);
+});
+
+
+video.addEventListener(
+    "play",
+    showPlayerControls
+);
+
+
+video.addEventListener(
+    "pause",
+    showPlayerControls
+);
+
+
+function seekVideo(seconds) {
+    const range = getSeekRange();
+
+    // Live khong co cua so tua (DVR) -> khong tua duoc.
+    if (!range.seekable) {
+        return;
+    }
+
+    seekTo(video.currentTime + seconds);
+
+    showPlayerControls();
+}
+
+
+function seekLive() {
+    const range = getSeekRange();
+
+    if (range.seekable) {
+        // Moc cuoi cua cua so tua = dang xem truc tiep.
+        seekTo(range.end);
+    }
+
+    showPlayerControls();
+}
+
+
+rewindButton.onclick =
+    () => seekVideo(-10);
+
+
+forwardButton.onclick =
+    () => seekVideo(10);
+
+
+liveButton.onclick =
+    seekLive;
+
+
+speedSelect.onchange =
+    () => {
+        video.playbackRate =
+            Number(speedSelect.value);
+    };
+
+
+// =====================================================
+// SHAKA
+// =====================================================
+
+async function initPlayer() {
+
+    shaka.polyfill.installAll();
+
+    if (!shaka.Player.isBrowserSupported()) {
+        throw new Error(
+            "Trình duyệt không hỗ trợ Shaka Player"
+        );
+    }
+
+    // Nếu còn player cũ thì hủy hoàn toàn
+    if (shakaPlayer) {
+        try {
+            await shakaPlayer.destroy();
+        } catch (e) {
+            console.warn("Destroy old Shaka:", e);
+        }
+
+        shakaPlayer = null;
+    }
+
+    // Tạo Shaka mới trực tiếp trên video
+    shakaPlayer = new shaka.Player(video);
+
+    shakaPlayer.configure({
+        manifest: {
+            disableAudio: false,
+            retryParameters: {
+                maxAttempts: 4,
+                baseDelay: 300,
+                backoffFactor: 1.5
+            }
+        },
+        streaming: {
+            retryParameters: {
+                maxAttempts: 5,
+                baseDelay: 250,
+                backoffFactor: 1.5
+            },
+            lowLatencyMode: false,
+            // Tang buffer de video muot hon, it rebuffer tren mang yeu.
+            // Nhung buffer goal lon lam hinh len cham o giay dau (phai
+            // do du 60s moi nchoi) -> bat dau phat som, ABR tu no them.
+            bufferingGoal: 20,
+            rebufferingGoal: 4,
+            bufferBehind: 90,
+            // Cho Shaka tu phuc hoi MSE khi gap loi decode segment
+            // (nhieu kenh DASH live tra segment loi thoang qua).
+            allowMediaSourceRecoveries: true,
+            minBytesForRecovery: 3000
+        }
+    });
+
+    shakaPlayer.addEventListener(
+        "error",
+        e => {
+
+            console.error(
+                "SHAKA ERROR:",
+                e.detail
+            );
+
+            const detail = e.detail || {};
+
+            // 3014: stream loi -> thu khoi phuc lai toan bo.
+            if (
+                detail.code === 3014 &&
+                currentDashUrl &&
+                dashRecoveryAttempts < 1
+            ) {
+                dashRecoveryAttempts++;
+                status.textContent =
+                    "Đang khôi phục luồng...";
+                recoverDashPlayback();
+                return;
+            }
+
+            // 3016: loi decode (thuong do audio track cua kenh loi).
+            // Thu tat audio de video van phat duoc.
+            if (
+                detail.code === 3016 &&
+                shakaPlayer &&
+                !shakaPlayer.__audioDisabled
+            ) {
+                shakaPlayer.__audioDisabled = true;
+                try {
+                    shakaPlayer.configure({
+                        manifest: { disableAudio: true }
+                    });
+                } catch {}
+                status.textContent =
+                    "Đang phát (không tiếng)...";
+                errorBox.textContent = "";
+                return;
+            }
+
+            errorBox.textContent =
+                "Shaka Error:\n" +
+                JSON.stringify(
+                    detail,
+                    null,
+                    2
+                );
+        }
+    );
+
+    return shakaPlayer;
+}
+
+
+async function recoverDashPlayback() {
+    if (!shakaPlayer || !currentDashUrl) {
+        return;
+    }
+
+    try {
+        await shakaPlayer.unload();
+
+        await shakaPlayer.load(currentDashUrl);
+        populateShakaQualities();
+        status.textContent = "🔴 Đang phát";
+    } catch (error) {
+        console.error("DASH RECOVERY ERROR:", error);
+        errorBox.textContent =
+            "Không thể khôi phục DASH: " +
+            error.message;
+    }
+}
+
+// =====================================================
+// SWITCH MODE
+// =====================================================
+
+async function switchMode(
+    newMode
+) {
+
+    mode =
+        newMode;
+
+
+    currentSource =
+        "Tất cả";
+
+
+    currentMatch =
+        null;
+
+
+    currentChannel =
+        null;
+
+
+    currentDashUrl =
+        "";
+
+
+    dashRecoveryAttempts =
+        0;
+
+    currentVnSite =
+        null;
+
+    currentVnMatch =
+        null;
+
+    document
+        .getElementById(
+            "vnFootballTab"
+        )
+        .classList.toggle(
+            "active",
+            mode === "vnfootball"
+        );
+
+    document
+        .getElementById(
+            "tvTab"
+        )
+        .classList.toggle(
+            "active",
+            mode === "tv"
+        );
+
+
+    hideBlv();
+
+
+    // CHỈ load playlist tương ứng — không phải cả 2
+    if (mode === "tv") {
+        await loadTvData();
+    } else if (mode === "vnfootball") {
+        await loadFootballData();
+    }
+
+
+    if (
+        footballRefreshTimer
+    ) {
+
+        clearInterval(
+            footballRefreshTimer
+        );
+
+        footballRefreshTimer =
+            null;
+    }
+
+
+}
+
+
+// =====================================================
+// WARM-UP CDN (preconnect)
+// =====================================================
+// Khi playlist da tai xong, lay ten host cua cac kenh dau danh sach va
+// bat trinh duyet mo san DNS+TLS toi CDN (nhu VLC khong phai cho DNS).
+
+// =====================================================
+// LOAD TV DATA (vmt47) — có filter BLV
+// =====================================================
+async function loadTvData(force = false) {
+    const cacheKey = "tv";
+    const cached = playlistCache.get(cacheKey);
+
+    if (!force && cached && Date.now() - cached.time < PLAYLIST_CACHE_TIME) {
+        applyTvData(cached.data);
+        return;
+    }
+
+    list.innerHTML = skeletonCards(8);
+    groups.innerHTML = "";
+
+    try {
+        let data = null;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const response = await fetch("/api/channels?type=tv");
+
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+
+                const json = await response.json();
+
+                if (!json.ok) {
+                    throw new Error(json.error || "Không tải được playlist");
+                }
+
+                data = json;
+                lastError = null;
+                break;
+            } catch (e) {
+                lastError = e;
+
+                if (attempt < 3) {
+                    list.innerHTML = `<div class="empty">Đang thử lại (${attempt}/3)...</div>`;
+                    await new Promise(r => setTimeout(r, 1200 * attempt));
+                }
+            }
+        }
+
+        if (lastError || !data) {
+            if (cached) {
+                applyTvData(cached.data);
+                return;
+            }
+            throw lastError || new Error("Không tải được playlist");
+        }
+
+        playlistCache.set(cacheKey, { time: Date.now(), data });
+        applyTvData(data);
+    } catch (err) {
+        console.error(err);
+        list.innerHTML = `
+            <div class="empty" style="color:#f44">
+                Lỗi tải playlist<br><br>${escapeHtml(err.message)}
+            </div>`;
+    }
+}
+
+
+// Khi nguoi dung bam kenh, ket noi da san sang -> bat dau phat nhanh hon
+// 100-500ms tren mobile (quan trong voi list ttthethao5).
+function warmUpStreamHosts(items) {
+
+    const hosts =
+        new Set();
+
+    const push =
+        url => {
+            try {
+                const u =
+                    new URL(
+                        String(url || "")
+                    );
+
+                if (
+                    u.protocol === "https:" ||
+                    u.protocol === "http:"
+                ) {
+                    hosts.add(u.origin);
+                }
+            } catch {}
+        };
+
+    for (
+        const item of
+        (items || [])
+    ) {
+
+        // TV / football: item.url hoac item.channels[].url
+        if (item && item.url) {
+            push(item.url);
+        }
+
+        if (item && item.channels) {
+            for (const ch of item.channels) {
+                if (ch && ch.url) {
+                    push(ch.url);
+                }
+            }
+        }
+
+        // vnfootball: site.matches[].streams[].url
+        if (item && item.matches) {
+            for (const m of item.matches) {
+                for (const s of (m.streams || [])) {
+                    if (s && s.url) {
+                        push(s.url);
+                    }
+                }
+            }
+        }
+
+        if (hosts.size >= 8) {
+            break;
+        }
+    }
+
+    let added = 0;
+
+    for (
+        const origin of
+        hosts
+    ) {
+
+        // Tranh inject trung khi tab duoc tai lai du lieu.
+        if (
+            document.querySelector(
+                'link[rel="preconnect"][href="' + origin + '"]'
+            )
+        ) {
+            continue;
+        }
+
+        if (added >= 8) {
+            break;
+        }
+
+        added++;
+
+        const pre =
+            document.createElement(
+                "link"
+            );
+
+        pre.rel =
+            "preconnect";
+
+        pre.href =
+            origin;
+
+        // fetch() cua hls.js la CORS-mode -> can crossorigin moi reuse ket noi.
+        pre.crossOrigin =
+            "anonymous";
+
+        document.head.appendChild(
+            pre
+        );
+
+        const dns =
+            document.createElement(
+                "link"
+            );
+
+        dns.rel =
+            "dns-prefetch";
+
+        dns.href =
+            origin;
+
+        document.head.appendChild(
+            dns
+        );
+    }
+}
+
+
+// =====================================================
+// LOAD DATA (mac dinh theo mode: tv -> vmt47, vnfootball -> ttthethao6)
+// =====================================================
+
+async function loadData(force = false) {
+
+    // ==================================================
+    // CACHE PHIA CLIENT: bam qua lai giua cac tab khong goi lai API.
+    // ==================================================
+    const loadType = mode;
+    const cacheKey = loadType;
+    const cached = playlistCache.get(cacheKey);
+
+    if (
+        !force &&
+        cached &&
+        Date.now() - cached.time < PLAYLIST_CACHE_TIME
+    ) {
+        applyPlaylistData(loadType, cached.data);
+        return;
+    }
+
+    // Skeleton: hien ngay cac the xam gia thay vi cho trang.
+    list.innerHTML =
+        skeletonCards(8);
+
+    groups.innerHTML =
+        "";
+
+    try {
+
+        // Nguon chap chon -> thu lai vai lan thay vi bao loi ngay.
+        let data = null;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                // Bo cache-bust: de trinh duyet/cache dung du lieu cu,
+                // giam request len nguon.
+                const response =
+                    await fetch(
+                        "/api/channels?type=" +
+                        encodeURIComponent(
+                            loadType
+                        )
+                    );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "HTTP " + response.status
+                    );
+                }
+
+                const json = await response.json();
+
+                if (!json.ok) {
+                    throw new Error(
+                        json.error ||
+                        "Không tải được playlist"
+                    );
+                }
+
+                data = json;
+                lastError = null;
+                break;
+
+            } catch (e) {
+                lastError = e;
+
+                if (attempt < 3) {
+                    list.innerHTML =
+                        `<div class="empty">Đang thử lại (${attempt}/3)...</div>`;
+
+                    await new Promise(r =>
+                        setTimeout(r, 1200 * attempt)
+                    );
+                }
+            }
+        }
+
+        if (lastError || !data) {
+            // Neu mang loi nhung co cache cu -> dung cache cu.
+            if (cached) {
+                applyPlaylistData(loadType, cached.data);
+                return;
+            }
+
+            throw lastError || new Error("Không tải được playlist");
+        }
+
+        playlistCache.set(cacheKey, {
+            time: Date.now(),
+            data
+        });
+
+
+        applyPlaylistData(loadType, data);
+
+    } catch (err) {
+
+        console.error(err);
+
+
+        list.innerHTML =
+            `
+            <div
+                class="empty"
+                style="color:#f44"
+            >
+                Lỗi tải playlist
+                <br><br>
+                ${escapeHtml(
+                    err.message
+                )}
+            </div>
+                        `;
+                }
+            }
+
+            // Ap dung du lieu da tai (tu fetch hoac tu cache client) vao UI.
+            function applyTvData(data) {
+                var arr = (data && data.channels) ? data.channels : [];
+                // Filter CHI ap dung cho danh sach TV (vmt47):
+                // bo nhom BLV Ga Vang, CoLa TV...
+                // (danh sach bong da ttthethao6 khong di qua ham nay).
+                tvData = arr.filter(function(channel) {
+                    var g = ((channel && channel.group) || "").toLowerCase();
+                    return !(g.indexOf("gavang") !== -1 ||
+                             g.indexOf("colatv") !== -1 ||
+                             g.indexOf("colatvm") !== -1 ||
+                             g.indexOf("khandai") !== -1 ||
+                             g.indexOf("baucua") !== -1);
+                });
+                renderTV();
+                warmUpStreamHosts(tvData);
+            }
+
+            function applyFootballData(data) {
+                vnSites = (data && data.sites) ? data.sites.slice() : [];
+                renderVnFootball();
+                warmUpStreamHosts(vnSites);
+            }
+
+            // Ap du lieu playlist theo dung loai (dung chung cho loadData):
+            // "tv" -> vmt47, "vnfootball" -> ttthethao6.
+            function applyPlaylistData(type, data) {
+                if (type === "vnfootball") {
+                    applyFootballData(data);
+                } else {
+                    applyTvData(data);
+                }
+            }
+
+            // =====================================================
+            // FOOTBALL DATA LOAD (ttthethao5) — KHÔNG filter BLV
+            // =====================================================
+
+            async function loadFootballData(force = false) {
+
+                const cacheKey = "vnfootball";
+                const cached = playlistCache.get(cacheKey);
+
+                if (
+                    !force &&
+                    cached &&
+                    Date.now() - cached.time < PLAYLIST_CACHE_TIME
+                ) {
+                    applyFootballData(cached.data);
+                    return;
+                }
+
+                list.innerHTML =
+                    skeletonCards(8);
+
+                groups.innerHTML =
+                    "";
+
+                try {
+
+                    let data = null;
+                    let lastError = null;
+
+                    for (let attempt = 1; attempt <= 3; attempt++) {
+                        try {
+                            const response =
+                                await fetch(
+                                    "/api/channels?type=vnfootball"
+                                );
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    "HTTP " + response.status
+                                );
+                            }
+
+                            const json = await response.json();
+
+                            if (!json.ok) {
+                                throw new Error(
+                                    json.error ||
+                                    "Không tải được playlist"
+                                );
+                            }
+
+                            data = json;
+                            lastError = null;
+                            break;
+
+                        } catch (e) {
+                            lastError = e;
+
+                            if (attempt < 3) {
+                                list.innerHTML =
+                                    `<div class="empty">Đang thử lại (${attempt}/3)...</div>`;
+
+                                await new Promise(r =>
+                                    setTimeout(r, 1200 * attempt)
+                                );
+                            }
+                        }
+                    }
+
+                    if (lastError || !data) {
+                        if (cached) {
+                            applyFootballData(cached.data);
+                            return;
+                        }
+
+                        throw lastError || new Error("Không tải được playlist");
+                    }
+
+                    playlistCache.set(cacheKey, {
+                        time: Date.now(),
+                        data
+                    });
+
+                    applyFootballData(data);
+
+                } catch (err) {
+
+                    console.error(err);
+
+                    list.innerHTML =
+                        `\
+                        <div
+                            class="empty"
+                            style="color:#f44"
+                        >
+                            Lỗi tải playlist
+                            <br><br>
+                            ${escapeHtml(
+                                err.message
+                            )}
+                        </div>
+                        `;
+                }
+            }
+
+            // =====================================================
+            // FOOTBALL
+            // =====================================================
+
+    function renderFootball() {
+
+    footballFilters.style.display =
+        "flex";
+
+    // ==================================================
+    // LỌC TRẬN THEO SOURCE
+    // ==================================================
+
+    const filtered =
+        vnSites.filter(
+            match => {
+
+                const name =
+                    String(
+                        match.name ||
+                        ""
+                    )
+                        .toLowerCase();
+
+
+                const channels =
+                    match.channels ||
+                    [];
+
+
+                const sourceOK =
+                    currentSource ===
+                    "Tất cả" ||
+
+                    channels.some(
+                        ch =>
+                            String(
+                                ch.source ||
+                                ""
+                            ).trim() ===
+                            currentSource
+                    );
+
+
+                return sourceOK;
+            }
+        );
+
+
+    renderFootballGroups();
+
+
+    if (
+        !filtered.length
+    ) {
+
+        list.innerHTML =
+            `
+            <div class="empty">
+                🔴 Không có trận phù hợp
+            </div>
+            `;
+
+        return;
+    }
+
+
+    list.innerHTML =
+        "";
+
+
+    for (
+        const match
+        of filtered
+    ) {
+
+        const box =
+            document.createElement(
+                "div"
+            );
+
+
+        box.className =
+            "match";
+
+
+        if (
+            currentMatch &&
+            currentMatch.key ===
+            match.key
+        ) {
+
+            box.classList.add(
+                "selected"
+            );
+        }
+
+
+        // ==================================================
+        // HEADER
+        // ==================================================
+
+        const header =
+            document.createElement(
+                "div"
+            );
+
+
+        header.className =
+            "match-header";
+
+
+        const time =
+            document.createElement(
+                "div"
+            );
+
+
+        time.className =
+            "match-time";
+
+
+        const d =
+            new Date(
+                match.startAt
+            );
+
+
+        time.textContent =
+            "Bắt đầu " +
+            String(
+                d.getHours()
+            ).padStart(2, "0") +
+            ":" +
+            String(
+                d.getMinutes()
+            ).padStart(2, "0");
+
+
+        const live =
+            document.createElement(
+                "div"
+            );
+
+
+        live.className =
+            "live-badge";
+
+
+        live.innerHTML =
+            `
+            <span class="live-dot"></span>
+            LIVE
+            `;
+
+
+        header.appendChild(
+            time
+        );
+
+
+        header.appendChild(
+            live
+        );
+
+
+        box.appendChild(
+            header
+        );
+
+
+        // ==================================================
+        // MATCH NAME
+        // ==================================================
+
+        const name =
+            document.createElement(
+                "div"
+            );
+
+
+        name.className =
+            "match-name";
+
+
+        name.textContent =
+            match.name;
+
+
+        box.appendChild(
+            name
+        );
+
+
+        // ==================================================
+        // SOURCE
+        // ==================================================
+
+        if (
+            currentSource ===
+            "Tất cả"
+        ) {
+
+            const sources =
+                [
+                    ...new Set(
+                        (
+                            match.channels ||
+                            []
+                        )
+                            .map(
+                                ch =>
+                                    ch.source
+                            )
+                            .filter(Boolean)
+                    )
+                ];
+
+
+            const sourceDiv =
+                document.createElement(
+                    "div"
+                );
+
+
+            sourceDiv.className =
+                "match-source";
+
+
+            sourceDiv.textContent =
+                "🌐 " +
+                sources.join(
+                    " • "
+                );
+
+
+            box.appendChild(
+                sourceDiv
+            );
+        }
+
+
+        // ==================================================
+        // CHANNELS CỦA SOURCE ĐANG CHỌN
+        // ==================================================
+
+        const visibleChannels =
+            currentSource ===
+            "Tất cả"
+
+                ? (
+                    match.channels ||
+                    []
+                )
+
+                : (
+                    match.channels ||
+                    []
+                ).filter(
+                    ch =>
+                        String(
+                            ch.source ||
+                            ""
+                        ).trim() ===
+                        currentSource
+                );
+
+
+        // ==================================================
+        // FOOTER
+        // ==================================================
+
+        const footer =
+            document.createElement(
+                "div"
+            );
+
+
+        footer.className =
+            "match-footer";
+
+
+        const count =
+            document.createElement(
+                "span"
+            );
+
+
+        count.className =
+            "match-blv-count";
+
+
+        count.textContent =
+            `📺 ${visibleChannels.length} kênh thể thao`;
+
+
+        const watch =
+            document.createElement(
+                "span"
+            );
+
+
+        watch.className =
+            "watch-text";
+
+
+        watch.textContent =
+            "▶ XEM TRẬN";
+
+
+        footer.appendChild(
+            count
+        );
+
+
+        footer.appendChild(
+            watch
+        );
+
+
+        box.appendChild(
+            footer
+        );
+
+
+        // ==================================================
+        // CLICK
+        // ==================================================
+
+        box.onclick =
+            () => {
+
+                openMatch(
+                    match
+                );
+            };
+
+
+        list.appendChild(
+            box
+        );
+    }
+}
+
+
+// =====================================================
+// SOURCE GROUPS
+// =====================================================
+
+function renderFootballGroups() {
+
+    groups.innerHTML =
+        "";
+
+
+    // ==================================================
+    // TẤT CẢ
+    // ==================================================
+
+    const all =
+        document.createElement(
+            "button"
+        );
+
+
+    all.className =
+        "group " +
+        (
+            currentSource ===
+            "Tất cả"
+                ? "active"
+                : ""
+        );
+
+
+    all.textContent =
+        "Tất cả";
+
+
+    all.onclick =
+        () => {
+
+            currentSource =
+                "Tất cả";
+
+
+            currentMatch =
+                null;
+
+
+            hideBlv();
+
+
+            renderFootball();
+        };
+
+
+    groups.appendChild(
+        all
+    );
+
+
+    // ==================================================
+    // SOURCE MAP
+    // ==================================================
+
+    const sourceMap =
+        new Map();
+
+
+    for (
+        const match
+        of vnSites
+    ) {
+
+        for (
+            const ch
+            of (
+                match.channels ||
+                []
+            )
+        ) {
+
+            const source =
+                String(
+                    ch.source ||
+                    ""
+                ).trim();
+
+
+            if (!source) {
+                continue;
+            }
+
+
+            if (
+                !sourceMap.has(
+                    source
+                )
+            ) {
+
+                sourceMap.set(
+                    source,
+                    {
+
+                        name:
+                            source,
+
+                        logo:
+                            ch.sourceLogo ||
+                            ""
+                    }
+                );
+            }
+        }
+    }
+
+
+    // ==================================================
+    // TẠO BUTTON SOURCE
+    // ==================================================
+
+    for (
+        const source
+        of sourceMap.values()
+    ) {
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+
+        button.className =
+            "group " +
+            (
+                currentSource ===
+                source.name
+                    ? "active"
+                    : ""
+            );
+
+
+        if (
+            source.logo
+        ) {
+
+            const img =
+                document.createElement(
+                    "img"
+                );
+
+
+            img.className =
+                "source-logo";
+
+
+            img.src =
+                source.logo;
+
+
+            img.onerror =
+                () => {
+
+                    img.style.display =
+                        "none";
+                };
+
+
+            button.appendChild(
+                img
+            );
+        }
+
+
+        button.appendChild(
+            document.createTextNode(
+                source.name
+            )
+        );
+
+
+        button.onclick =
+            () => {
+
+                currentSource =
+                    source.name;
+
+
+                currentMatch =
+                    null;
+
+
+                currentChannel =
+                    null;
+
+
+                hideBlv();
+
+
+                renderFootball();
+            };
+
+
+        groups.appendChild(
+            button
+        );
+    }
+}
+
+
+// =====================================================
+// OPEN MATCH
+// =====================================================
+
+async function openMatch(
+    match
+) {
+
+    currentMatch =
+        match;
+
+
+    // ==================================================
+    // CHỈ LẤY STREAM THUỘC SOURCE ĐANG CHỌN
+    // ==================================================
+
+    let channels =
+        match.channels ||
+        [];
+
+
+    if (
+        currentSource !==
+        "Tất cả"
+    ) {
+
+        channels =
+            channels.filter(
+                ch =>
+                    String(
+                        ch.source ||
+                        ""
+                    ).trim() ===
+                    currentSource
+            );
+    }
+
+
+    if (!channels.length) {
+
+        return;
+    }
+
+
+    currentChannel =
+        channels[0];
+
+
+    renderFootball();
+
+
+    renderBLVButtons(
+        channels
+    );
+
+
+    await playFootballChannel(
+        currentChannel
+    );
+}
+
+
+// =====================================================
+// SPORT CHANNEL BUTTONS
+// =====================================================
+
+function renderBLVButtons(
+    channels = null
+) {
+
+    if (
+        !channels
+    ) {
+
+        if (
+            !currentMatch
+        ) {
+
+            hideBlv();
+
+            return;
+        }
+
+
+        channels =
+            currentMatch.channels ||
+            [];
+
+
+        if (
+            currentSource !==
+            "Tất cả"
+        ) {
+
+            channels =
+                channels.filter(
+                    ch =>
+                        String(
+                            ch.source ||
+                            ""
+                        ).trim() ===
+                        currentSource
+                );
+        }
+    }
+
+
+    if (
+        !channels.length
+    ) {
+
+        hideBlv();
+
+        return;
+    }
+
+
+    blvPanel.style.display =
+        "block";
+
+
+    blvButtons.innerHTML =
+        "";
+
+
+    channels.forEach(
+        (
+            channel,
+            index
+        ) => {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+
+            button.className =
+                "blv-button";
+
+
+            if (
+                currentChannel &&
+                currentChannel.streamId ===
+                channel.streamId
+            ) {
+
+                button.classList.add(
+                    "active"
+                );
+            }
+
+
+            button.textContent =
+                channel.commentator ||
+                `Kênh ${index + 1}`;
+
+
+            button.onclick =
+                async e => {
+
+                    e.stopPropagation();
+
+
+                    currentChannel =
+                        channel;
+
+
+                    renderBLVButtons(
+                        channels
+                    );
+
+
+                    await playFootballChannel(
+                        channel
+                    );
+                };
+
+
+            blvButtons.appendChild(
+                button
+            );
+        }
+    );
+}
+
+
+// =====================================================
+// SOURCE INFO
+// =====================================================
+
+function showCurrentSource(
+    channel
+) {
+
+    if (
+        !channel
+    ) {
+
+        currentSourceBox.style.display =
+            "none";
+
+        return;
+    }
+
+
+    currentSourceBox.innerHTML =
+        "";
+
+
+    if (
+        channel.sourceLogo
+    ) {
+
+        const img =
+            document.createElement(
+                "img"
+            );
+
+
+        img.src =
+            channel.sourceLogo;
+
+
+        img.onerror =
+            () => {
+
+                img.style.display =
+                    "none";
+            };
+
+
+        currentSourceBox.appendChild(
+            img
+        );
+    }
+
+
+    currentSourceBox.appendChild(
+        document.createTextNode(
+            "🌐 " +
+            (
+                channel.source ||
+                "Nguồn khác"
+            )
+        )
+    );
+
+
+    currentSourceBox.style.display =
+        "inline-flex";
+}
+
+
+// =====================================================
+// HIDE BLV
+// =====================================================
+
+function hideBlv() {
+
+    blvPanel.style.display =
+        "none";
+
+
+    blvButtons.innerHTML =
+        "";
+}
+
+
+// Link khong khoa (khong clearKeys, khong Referer/UA la) thi phat
+// thang duoc nhu VLC -> khong can goi API server.
+// URL thuoc nguon can UA rieng (vmttv/dpdns/tv360/mytvnet/vtvprime/seenow
+// - playlist vmt47) -> phai di qua server.
+const NEEDS_PROXY_URL_RE =
+    /tv360|vmttv|dpdns|mytvnet|vtvprime|seenow\.vn/i;
+
+function channelNeedsServer(channel) {
+
+    const keys =
+        (channel && channel.clearKeys) || {};
+
+    if (Object.keys(keys).length > 0) {
+        return true;
+    }
+
+    const url =
+        String((channel && channel.url) || "");
+
+    // Nguon vmt47 nhieu kenh chi tra stream dung khi duoc goi voi
+    // User-Agent Dalvik; JS khong doi duoc User-Agent -> qua proxy.
+    if (NEEDS_PROXY_URL_RE.test(url)) {
+        return true;
+    }
+
+    // FLV phat duoc truc tiep bang mpegts.js (type "flv"), khong can server.
+
+    const headers =
+        (channel && channel.headers) || {};
+
+    if (headers.Referer || headers.referer) {
+        return true;
+    }
+
+    const ua =
+        String(
+            headers["User-Agent"] ||
+            headers["user-agent"] ||
+            ""
+        );
+
+    // Playlist khai UA khac browser (Dalvik, VThanhTivi, cvmedia,
+    // Mozilla Android Mobile...) -> JS khong set duoc UA do -> qua proxy.
+    if (
+        ua &&
+        (!/mozilla\/5\.0/i.test(ua) ||
+            /android.*mobile/i.test(ua))
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+
+// =====================================================
+// PHAT THANG NHU VLC (KHONG GOI API)
+// =====================================================
+
+function resolveWithTimeout(promise, ms, label) {
+
+    let timer = null;
+
+    const timeout =
+        new Promise((_, reject) => {
+            timer =
+                setTimeout(
+                    () =>
+                        reject(new Error((label || "timeout") + " sau " + ms + "ms")),
+                    ms
+                );
+        });
+
+    // Quan trong: promise goc (hls/mpegts/...) co the treo nen khi sai
+    // loai stream. Gan catch de tranh unhandled rejection, va stopPlayer
+    // truoc moi attempt tiep theo de khong chay ngam 2 player.
+    if (promise && typeof promise.catch === "function") {
+        promise.catch(() => {});
+    }
+
+    return Promise.race([promise, timeout]).finally(
+        () => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+        }
+    );
+}
+
+
+async function playHlsDirectOnly(url) {
+
+    // Ban truc tiep (VLC-style): fail-fast, KHONG retry dai,
+    // KHONG fallback proxy. Sai loai -> reject nhanh de thu kieu tiep.
+    if (
+        typeof Hls !== "undefined" &&
+        Hls.isSupported()
+    ) {
+        await stopPlayer();
+
+        hlsPlayer = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            // Vao nhanh hon direct (VLC-style): dung 2 segment sau live edge
+            // thay vi 3; neu lateness vuot thi no nhanh lai max 8 segment.
+            liveSyncDurationCount: 2,
+            liveMaxLatencyDurationCount: 8,
+            maxLiveSyncPlaybackRate: 1.5,
+            backBufferLength: 30,
+            maxBufferLength: 30,
+            maxBufferSize: 60 * 1000 * 1000,
+            maxMaxBufferLength: 60,
+            capLevelToPlayerSize: true,
+            // Truoc khi phat duoc: cho manifest thu vai lan (link VN qua
+            // redirect tinyurl hay hiccup lan dau, VLC van cho) nhung van
+            // fail trong vong vai giay de khong tre qua lau.
+            manifestLoadingMaxRetry: 3,
+            manifestLoadingMaxRetryTimeout: 3000,
+            levelLoadingMaxRetry: 2,
+            levelLoadingMaxRetryTimeout: 4000,
+            fragLoadingMaxRetry: 2,
+            fragLoadingMaxRetryTimeout: 4000,
+            abrEwmaDefaultEstimate: 1500000,
+            abrBandWidthFactor: 0.9,
+            startLevel: -1
+        });
+
+        await new Promise((resolve, reject) => {
+            let done = false;
+            let recoverTries = 0;
+
+            const ok = async () => {
+                if (done) {
+                    return;
+                }
+
+                done = true;
+                populateHlsQualities();
+
+                try {
+                    await video.play();
+                } catch (e) {
+                    console.warn("Autoplay:", e);
+                }
+
+                resolve();
+            };
+
+            const fail = (msg) => {
+                if (done) {
+                    return;
+                }
+
+                done = true;
+                reject(new Error(msg || "Khong phai HLS"));
+            };
+
+            hlsPlayer.on(Hls.Events.MANIFEST_PARSED, ok);
+
+            hlsPlayer.on(
+                Hls.Events.ERROR,
+                (event, data) => {
+                    if (!data || !data.fatal) {
+                        return;
+                    }
+
+                    // Chua phat duoc (chua qua MANIFEST_PARSED) -> khong phai
+                    // HLS hoac link hong -> fail de thu kieu khac.
+                    if (!done) {
+                        fail("HLS: " + (data.details || data.type || "fatal"));
+                        return;
+                    }
+
+                    // Da dang phat: tu phuc hoi nhu VLC (khong den hinh den).
+                    recoverTries++;
+
+                    if (recoverTries > 6) {
+                        console.warn("HLS recover qua gioi han, dung thu lai");
+                        return;
+                    }
+
+                    try {
+                        if (
+                            data.type === Hls.ErrorTypes.NETWORK_ERROR
+                        ) {
+                            if (
+                                data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                                data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT
+                            ) {
+                                hlsPlayer.loadSource(hlsPlayer.url);
+                            }
+                            hlsPlayer.startLoad();
+                        } else if (
+                            data.type === Hls.ErrorTypes.MEDIA_ERROR
+                        ) {
+                            hlsPlayer.recoverMediaError();
+                        } else {
+                            hlsPlayer.startLoad();
+                        }
+                    } catch (e) {
+                        console.warn("HLS recover error:", e);
+                    }
+                }
+            );
+
+            try {
+                hlsPlayer.attachMedia(video);
+                hlsPlayer.loadSource(url);
+            } catch (e) {
+                fail(e && e.message);
+            }
+        });
+
+        return;
+    }
+
+    if (
+        video.canPlayType(
+            "application/vnd.apple.mpegurl"
+        )
+    ) {
+        await loadVideoSource(url);
+
+        try {
+            await video.play();
+        } catch (e) {
+            console.warn("Autoplay:", e);
+        }
+
+        return;
+    }
+
+    throw new Error("Trinh duyet khong ho tro HLS");
+}
+
+
+async function playMpegTsDirectOnly(url) {
+
+    if (
+        typeof mpegts === "undefined" ||
+        !mpegts.isSupported()
+    ) {
+        throw new Error("Trinh duyet chua ho tro MPEG-TS");
+    }
+
+    await stopPlayer();
+    mpegtsRecoverCount = 0;
+
+    await new Promise((resolve, reject) => {
+        let done = false;
+
+        const ok = () => {
+            if (done) {
+                return;
+            }
+
+            done = true;
+            resolve();
+        };
+
+        const fail = (msg) => {
+            if (done) {
+                return;
+            }
+
+            done = true;
+            reject(new Error(msg || "Khong phai MPEG-TS"));
+        };
+
+        mpegtsPlayer = mpegts.createPlayer(
+            {
+                // Link .flv can type "flv" (mpegts.js la fork cua flv.js,
+                // decode duoc FLV qua HTTP); con lai la mpegts.
+                type: /\.flv(?:\?|$)/i.test(url) ? "flv" : "mpegts",
+                url,
+                isLive: true
+            },
+            {
+                enableWorker: true,
+                enableStashBuffer: false,
+                liveBufferLatencyChasing: true,
+                liveBufferLatencyMaxLatency: 8,
+                liveBufferLatencyMinRemain: 2
+            }
+        );
+
+        mpegtsPlayer.on(
+            mpegts.Events.ERROR,
+            (type, detail) => {
+                // Chua co frame nao ma da ERROR -> sai loai / link hong.
+                if (!video.currentTime) {
+                    fail("MPEGTS: " + type);
+                    return;
+                }
+
+                // Dang phat ma loi nhe -> ke tiep, khong fail attempt.
+                try {
+                    mpegtsPlayer.load();
+                    mpegtsPlayer.play();
+                } catch {}
+            }
+        );
+
+        video.addEventListener("loadeddata", ok, { once: true });
+        video.addEventListener("playing", ok, { once: true });
+
+        try {
+            mpegtsPlayer.attachMediaElement(video);
+            mpegtsPlayer.load();
+            mpegtsPlayer.play();
+        } catch (e) {
+            fail(e && e.message);
+        }
+    });
+}
+
+
+async function playDashDirectOnly(url) {
+
+    currentDashUrl = url;
+    dashRecoveryAttempts = 0;
+
+    if (!shakaPlayer) {
+        await initPlayer();
+    }
+
+    await shakaPlayer.configure({ drm: { clearKeys: {} } });
+    await shakaPlayer.load(url);
+    populateShakaQualities();
+
+    try {
+        await video.play();
+    } catch (e) {
+        console.warn("Autoplay:", e);
+    }
+}
+
+
+async function tryPlayUrlDirect(rawUrl, label) {
+
+    const url = String(rawUrl || "");
+
+    if (!url) {
+        throw new Error("Thieu URL stream");
+    }
+
+    const suffix = label ? " • " + label : "";
+
+    const isFlv = /\.flv(?:\?|$)/i.test(url);
+    const isHlsUrl = isHLS(url);
+    const isTsUrl = /\.ts(?:\?|$)/i.test(url);
+    const isMpdUrl = isMPD(url);
+
+    // Da biet la kenh co khoa (VTVPrime, TV360+, MyTV...) -> phat truc
+    // tiep chac chan fail (thieu key/UA) -> khong ton thoi gian thu.
+    if (KEYED_URLS.has(url)) {
+        throw new Error("Kenh co khoa DRM, can qua server");
+    }
+
+    // FLV: khong thu HLS/video vo ich — vao thang mpegts (type
+    // "flv") de nhanh nhu VLC, tranh mat ~30s lan luot thu sai loai.
+    if (isFlv && typeof mpegts !== "undefined" && mpegts.isSupported()) {
+        try {
+            status.textContent = "⏳ Đang thử FLV" + suffix + "...";
+            await resolveWithTimeout(playMpegTsDirectOnly(url), 12000, "flv");
+            status.textContent = "🔴 Đang phát" + suffix;
+            return "mpegts";
+        } catch (e) {
+            console.warn("DIRECT: khong phai FLV:", e && e.message);
+        }
+
+        await stopPlayer();
+
+        throw new Error("Không phát được luồng FLV");
+    }
+
+    // Dung duoi file de chon DUNG loai player ngay lan dau (nhu VLC):
+    // .m3u8 -> HLS, .ts -> MPEG-TS, .mpd -> DASH; khong lan luot thu
+    // cac loai con lai cho ton thoi gian.
+
+    if (isHlsUrl) {
+        try {
+            status.textContent = "⏳ Đang thử HLS" + suffix + "...";
+            // Cho 15s: HLS là dạng ưu tiên của các luồng bóng đá VN (ttthethao5),
+            // hiccup mạng lần đầu không nên bỏ luồng sống quá sớm như VLC.
+            await resolveWithTimeout(playHlsDirectOnly(url), 15000, "HLS");
+            status.textContent = "🔴 Đang phát" + suffix;
+            return "hls";
+        } catch (e) {
+            console.warn("DIRECT: HLS fail:", e && e.message);
+        }
+
+        await stopPlayer();
+
+        throw new Error("Không phát được luồng HLS");
+    }
+
+    if (isTsUrl && typeof mpegts !== "undefined" && mpegts.isSupported()) {
+        try {
+            status.textContent = "⏳ Đang thử MPEG-TS" + suffix + "...";
+            await resolveWithTimeout(playMpegTsDirectOnly(url), 12000, "mpegts");
+            status.textContent = "🔴 Đang phát" + suffix;
+            return "mpegts";
+        } catch (e) {
+            console.warn("DIRECT: MPEG-TS fail:", e && e.message);
+        }
+
+        await stopPlayer();
+
+        throw new Error("Không phát được luồng MPEG-TS");
+    }
+
+    if (isMpdUrl) {
+        try {
+            status.textContent = "⏳ Đang thử DASH" + suffix + "...";
+            await resolveWithTimeout(playDashDirectOnly(url), 12000, "dash");
+            status.textContent = "🔴 Đang phát" + suffix;
+            return "dash";
+        } catch (e) {
+            console.warn("DIRECT: DASH fail:", e && e.message);
+
+            // MPD thieu key -> ghi nho de lan sau vao thang API.
+            if (
+                e &&
+                (e.name === "ShakaError" ||
+                    /DRM|key/i.test(String(e.code || e.message || "")))
+            ) {
+                KEYED_URLS.add(url);
+            }
+        }
+
+        await stopPlayer();
+
+        throw new Error("Không phát được luồng DASH");
+    }
+
+    // Khong biet duoi file (link redirect, query lau doi...) -> thu
+    // lan luot nhu truoc.
+
+    try {
+        status.textContent = "⏳ Đang thử HLS" + suffix + "...";
+        await resolveWithTimeout(playHlsDirectOnly(url), 15000, "HLS");
+        status.textContent = "🔴 Đang phát" + suffix;
+        return "hls";
+    } catch (e) {
+        console.warn("DIRECT: khong phai HLS:", e && e.message);
+    }
+
+    await stopPlayer();
+
+    try {
+        status.textContent = "⏳ Đang thử video" + suffix + "...";
+        await resolveWithTimeout(playDirectVideo(url, ""), 8000, "video");
+        status.textContent = "🔴 Đang phát" + suffix;
+        return "video";
+    } catch (e) {
+        console.warn("DIRECT: khong phai video:", e && e.message);
+    }
+
+    await stopPlayer();
+
+    if (typeof mpegts !== "undefined" && mpegts.isSupported()) {
+        try {
+            status.textContent = "⏳ Đang thử MPEG-TS" + suffix + "...";
+            await resolveWithTimeout(playMpegTsDirectOnly(url), 8000, "mpegts");
+            status.textContent = "🔴 Đang phát" + suffix;
+            return "mpegts";
+        } catch (e) {
+            console.warn("DIRECT: khong phai mpegts:", e && e.message);
+        }
+
+        await stopPlayer();
+    }
+
+    try {
+        status.textContent = "⏳ Đang thử DASH" + suffix + "...";
+        await resolveWithTimeout(playDashDirectOnly(url), 10000, "dash");
+        status.textContent = "🔴 Đang phát" + suffix;
+        return "dash";
+    } catch (e) {
+        console.warn("DIRECT: khong phai dash:", e && e.message);
+    }
+
+    await stopPlayer();
+
+    throw new Error("Khong phat truc tiep duoc");
+}
+
+
+// =====================================================
+// PLAY FOOTBALL
+// =====================================================
+
+async function playFootballChannel(
+    channel
+) {
+
+    errorBox.textContent =
+        "";
+
+
+    title.textContent =
+        currentMatch
+            ? currentMatch.name
+            : "Đang phát";
+
+
+    status.textContent =
+        "Đang mở...";
+
+
+    showCurrentSource(
+        channel
+    );
+
+
+    try {
+
+        await stopPlayer();
+
+        // Link khong khoa -> phat thang nhu VLC, KHONG goi API server.
+        if (!channelNeedsServer(channel)) {
+            try {
+                await tryPlayUrlDirect(
+                    channel.url,
+                    channel.commentator || "Kênh thể thao"
+                );
+
+                return;
+            } catch (directErr) {
+                console.warn(
+                    "DIRECT hong, chuyen sang API:",
+                    directErr && directErr.message
+                );
+            }
+        }
+
+        const cacheKey =
+            "football:" + channel.streamId;
+
+        const cached =
+            streamCache.get(cacheKey);
+
+        let result;
+
+        if (
+            cached &&
+            Date.now() - cached.time <
+                STREAM_CACHE_TIME
+        ) {
+            result = cached.data;
+        } else {
+            const response =
+                await fetch(
+                    "/api/football/stream/" +
+                    encodeURIComponent(
+                        channel.streamId
+                    )
+                );
+
+            result =
+                await response.json();
+
+            if (result.ok) {
+                streamCache.set(
+                    cacheKey,
+                    {
+                        time: Date.now(),
+                        data: result
+                    }
+                );
+            }
+        }
+
+
+        if (
+            !result.ok
+        ) {
+
+            throw new Error(
+                result.error ||
+                "Không lấy được stream"
+            );
+        }
+
+
+        await stopPlayer();
+
+
+        const sources =
+            pickPlaySources(result);
+
+        const url =
+            sources.primary ||
+            result.url;
+
+
+        const fallbackUrl =
+            sources.fallback;
+
+
+        // ==================================================
+        // DASH
+        // ==================================================
+
+        if (
+            isMPD(url) ||
+            Object.keys(
+                result.clearKeys ||
+                {}
+            ).length
+        ) {
+
+            currentDashUrl = url;
+            dashRecoveryAttempts = 0;
+
+            if (
+                !shakaPlayer
+            ) {
+
+                await initPlayer();
+            }
+
+
+            shakaPlayer.configure({
+
+                drm: {
+
+                    clearKeys:
+                        result.clearKeys ||
+                        {}
+                }
+            });
+
+
+            await shakaPlayer.load(
+                url
+            );
+
+            populateShakaQualities();
+
+
+            status.textContent =
+                "🔴 Đang phát • " +
+                (
+                    channel.commentator ||
+                    "Kênh thể thao"
+                );
+
+
+            return;
+        }
+
+
+        // ==================================================
+        // HLS
+        // ==================================================
+
+        if (
+            result.kind === "hls" ||
+            isHLS(url)
+        ) {
+
+            await playHLS(
+                url,
+                fallbackUrl
+            );
+
+            return;
+        }
+
+        if (
+            result.contentType === "video/mp2t" ||
+            /\.ts(?:\?|$)/i.test(url)
+        ) {
+            await playMpegTs(url);
+            status.textContent =
+                "🔴 Đang phát • " +
+                (channel.commentator || "Kênh thể thao");
+            return;
+        }
+
+
+        // ==================================================
+        // VIDEO
+        // ==================================================
+
+        await playDirectVideo(
+            url,
+            fallbackUrl
+        );
+
+
+        status.textContent =
+            "🔴 Đang phát • " +
+            (
+                channel.commentator ||
+                "Kênh thể thao"
+            );
+
+    } catch (err) {
+
+        console.error(
+            "FOOTBALL PLAY ERROR:",
+            err
+        );
+
+
+        status.textContent =
+            "Không phát được";
+
+
+        errorBox.textContent =
+            err.message ||
+            String(err);
+    }
+}
+
+
+// =====================================================
+// CHỌN NGUỒN PHÁT TỐI ƯU CHO THIẾT BỊ
+// =====================================================
+// Server trả về:
+//   playUrl         : nguồn ưu tiên (URL gốc CDN nếu phát trực tiếp được,
+//                     ngược lại là URL proxy của server)
+//   playFallbackUrl : nguồn dự phòng dùng khi nguồn ưu tiên lỗi
+//   directUrl       : URL gốc CDN
+//   corsBlocksHls   : true khi CDN thiếu CORS (hls.js bị chặn)
+//
+// Thiết bị dùng MSE (hls.js) cần CORS nên đi theo server. Safari/iPhone
+// phát HLS native (không bị CORS chặn) -> ưu tiên URL gốc cho mượt như VLC.
+
+function pickPlaySources(result) {
+
+    const primary =
+        result.playUrl ||
+        result.finalUrl ||
+        result.url ||
+        "";
+
+    const fallback =
+        result.playFallbackUrl || "";
+
+    const nativeHls =
+        !(typeof Hls !== "undefined" && Hls.isSupported()) &&
+        video.canPlayType("application/vnd.apple.mpegurl");
+
+    // Nguồn chỉ phải proxy vì thiếu CORS mà máy này không dùng MSE:
+    // phát trực tiếp từ CDN cho mượt, proxy làm nguồn dự phòng.
+    if (
+        nativeHls &&
+        result.corsBlocksHls &&
+        result.directUrl &&
+        result.directUrl !== primary
+    ) {
+        return {
+            primary: result.directUrl,
+            fallback: primary
+        };
+    }
+
+    // Nguồn ưu tiên là URL proxy (nguồn đòi Referer/User-Agent riêng) thì URL
+    // gốc chắc chắn không phát được trên browser -> bỏ dự phòng trực tiếp.
+    if (/^\/api\/proxy\?/.test(primary)) {
+        return {
+            primary,
+            fallback: ""
+        };
+    }
+
+    return {
+        primary,
+        fallback
+    };
+}
+
+
+// =====================================================
+// HLS
+// =====================================================
+
+async function playHLS(
+    url,
+    fallbackUrl
+) {
+
+    /*
+     * playHLS() được gọi sau stopPlayer()
+     * nên lúc này HLS/Shaka cũ đã được hủy.
+     *
+     * url         : nguồn ưu tiên (URL gốc CDN -> tải trực tiếp cho mượt
+     *               như VLC, không đi vòng qua server).
+     * fallbackUrl : nguồn dự phòng (thường là /api/proxy) dùng khi nguồn
+     *               chính bị CORS/403/mạng -> tự chuyển, không treo hình.
+     */
+
+    // Chỉ đổi sang nguồn dự phòng 1 lần cho mỗi lần bấm kênh.
+    let hlsFallbackUsed = false;
+
+    if (
+        typeof Hls !== "undefined" &&
+        Hls.isSupported()
+    ) {
+
+        hlsPlayer =
+            new Hls({
+
+                enableWorker:
+                    true,
+
+                // Tat lowLatencyMode: LL-HLS buoc phai tai segment nho lien tuc,
+                // mang yeu se giut lien tuc. Tueuuan buffer dai hon cho muot.
+                lowLatencyMode:
+                    false,
+
+                // Giam sync duration de bat dau phat nhanh hon (4 * targetDuration).
+                liveSyncDurationCount:
+                    3,
+
+                liveMaxLatencyDurationCount:
+                    10,
+
+                maxLiveSyncPlaybackRate:
+                    1.5,
+
+                backBufferLength:
+                    30,
+
+                // Buffer vua du cho live: 60s lam tre live qua lau + ton RAM
+                // mobile (hls.js giu 90MB trong bo nho). 30s van muot tren
+                // mang yeu ma khong bi "dung hinh tich luy" nhu truoc.
+                maxBufferLength:
+                    30,
+
+                maxBufferSize:
+                    60 * 1000 * 1000,
+
+                maxMaxBufferLength:
+                    60,
+
+                // Mobile: gioi han chat luong theo kich thuoc khung hinh ->
+                // giam bang thong, it giat hon han khi mang yeu.
+                capLevelToPlayerSize:
+                    true,
+
+                manifestLoadingMaxRetry:
+                    5,
+
+                levelLoadingMaxRetry:
+                    5,
+
+                fragLoadingMaxRetry:
+                    5,
+
+                fragLoadingMaxRetryTimeout:
+                    3000,
+
+                // ABR: bat dau o muc uoc luong ~1.5 Mbps thay vi muc thap nhat
+                // -> len nhanh hon, mang yeu van duoc chuan do rebuffer.
+                abrEwmaDefaultEstimate: 1500000,
+
+                abrBandWidthFactor: 0.9,
+
+                startLevel: -1
+            });
+
+
+        hlsPlayer.on(
+            Hls.Events.ERROR,
+            (
+                event,
+                data
+            ) => {
+
+                console.error(
+                    "HLS ERROR:",
+                    data
+                );
+
+
+                if (!data.fatal) {
+                    return;
+                }
+
+
+                if (
+                    data.type ===
+                    Hls.ErrorTypes.NETWORK_ERROR
+                ) {
+                    // Nguồn chính (phát trực tiếp từ CDN) bị chặn: CORS,
+                    // 403/404/URL hết hạn... -> chuyển ngay sang nguồn dự
+                    // phòng (proxy của server) thay vì để đứng hình.
+                    if (fallbackUrl && !hlsFallbackUsed) {
+                        hlsFallbackUsed = true;
+
+                        console.warn(
+                            "HLS: nguồn chính lỗi (" +
+                            data.details +
+                            ") -> chuyển nguồn dự phòng"
+                        );
+
+                        const deadPlayer = hlsPlayer;
+                        hlsPlayer = null;
+
+                        Promise.resolve(
+                            deadPlayer?.destroy?.()
+                        )
+                            .catch(() => {})
+                            .then(() => playHLS(fallbackUrl))
+                            .catch(err => {
+                                console.error(
+                                    "HLS FALLBACK ERROR:",
+                                    err
+                                );
+                                errorBox.textContent =
+                                    err?.message || String(err);
+                            });
+
+                        return;
+                    }
+
+                    // Loi manifest/level/fragment mang: bam dau hien tai ->
+                    // startLoad() se tai lai tu segment dang dung, khong restart tu dau.
+                    try {
+                        if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                            data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
+                            hlsPlayer.loadSource(hlsPlayer.url);
+                        }
+                        hlsPlayer.startLoad();
+                    } catch {}
+
+                    return;
+                }
+
+
+                if (
+                    data.type ===
+                    Hls.ErrorTypes.MEDIA_ERROR
+                ) {
+                    // Thu recover media; neu bi gap loi -> append vao hang cho doi.
+                    try {
+                        hlsPlayer.recoverMediaError();
+                    } catch {}
+
+                    return;
+                }
+
+
+                errorBox.textContent =
+                    "HLS Error:\n" +
+                    JSON.stringify(
+                        data,
+                        null,
+                        2
+                    );
+            }
+        );
+
+
+        hlsPlayer.on(
+            Hls.Events.MANIFEST_PARSED,
+            async () => {
+
+                populateHlsQualities();
+
+                try {
+
+                    await video.play();
+
+                    status.textContent =
+                        "🔴 Đang phát";
+
+                } catch (e) {
+
+                    console.warn(
+                        "Autoplay:",
+                        e
+                    );
+                }
+            }
+        );
+
+
+        hlsPlayer.attachMedia(
+            video
+        );
+
+
+        hlsPlayer.loadSource(
+            url
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * Safari / browser có HLS native
+     */
+
+    if (
+        video.canPlayType(
+            "application/vnd.apple.mpegurl"
+        )
+    ) {
+
+        video.src =
+            url;
+
+
+        await video.play();
+
+
+        status.textContent =
+            "🔴 Đang phát";
+
+        return;
+    }
+
+
+    throw new Error(
+        "Trình duyệt không hỗ trợ HLS"
+    );
+}
+
+
+// =====================================================
+// VIDEO TRỰC TIẾP (mp4/ts...) + NGUỒN DỰ PHÒNG
+// =====================================================
+// File video phát trực tiếp từ CDN cho mượt (giống VLC); nếu nguồn lỗi
+// 403/404/mạng thì tự chuyển sang URL dự phòng (proxy) trước khi báo lỗi.
+
+function loadVideoSource(src) {
+
+    return new Promise((resolve, reject) => {
+
+        const onError = () => {
+            cleanup();
+
+            reject(
+                new Error(
+                    "Không tải được video (mã lỗi " +
+                    (video.error ? video.error.code : "?") +
+                    ")"
+                )
+            );
+        };
+
+        const onLoaded = () => {
+            cleanup();
+            resolve();
+        };
+
+        const cleanup = () => {
+            video.removeEventListener("error", onError);
+            video.removeEventListener("loadeddata", onLoaded);
+        };
+
+        video.addEventListener("error", onError);
+        video.addEventListener("loadeddata", onLoaded);
+
+        video.src = src;
+    });
+}
+
+
+async function playDirectVideo(url, fallbackUrl) {
+
+    const candidates = [url];
+
+    if (fallbackUrl && fallbackUrl !== url) {
+        candidates.push(fallbackUrl);
+    }
+
+    let lastError = null;
+
+    for (const src of candidates) {
+
+        try {
+
+            await loadVideoSource(src);
+
+        } catch (e) {
+
+            lastError = e;
+
+            console.warn(
+                "VIDEO nguồn lỗi, thử nguồn tiếp theo:",
+                src,
+                e.message
+            );
+
+            continue;
+        }
+
+        try {
+            await video.play();
+        } catch (e) {
+            console.warn("Autoplay:", e);
+        }
+
+        return;
+    }
+
+    throw lastError || new Error("Không phát được video");
+}
+
+let mpegtsRecoverCount = 0;
+
+function playMpegTsOnce(url) {
+    mpegtsPlayer = mpegts.createPlayer(
+        {
+            // .flv can type "flv" (mpegts.js ho tro FLV qua HTTP).
+            type: /\.flv(?:\?|$)/i.test(url) ? "flv" : "mpegts",
+            url,
+            isLive: true
+        },
+        {
+            enableWorker: true,
+            enableStashBuffer: false,
+            liveBufferLatencyChasing: true,
+            liveBufferLatencyMaxLatency: 8,
+            liveBufferLatencyMinRemain: 2
+        }
+    );
+
+    mpegtsPlayer.on(
+        mpegts.Events.ERROR,
+        (type, detail) => {
+            console.error(
+                "MPEGTS ERROR:",
+                type,
+                detail
+            );
+
+            if (
+                mpegtsPlayer &&
+                mpegtsPlayer.mediaSource &&
+                video.currentTime > 0
+            ) {
+                // Lỗi nhẹ, thử tiếp tục tải
+                try {
+                    mpegtsPlayer.load();
+                    mpegtsPlayer.play();
+                } catch {}
+
+                return;
+            }
+
+            // Lỗi nghiêm trọng: dựng lại player (tối đa 3 lần)
+            mpegtsRecoverCount++;
+
+            if (mpegtsRecoverCount > 3) {
+                errorBox.textContent =
+                    "MPEG-TS Error:\n" +
+                    type +
+                    " " +
+                    (detail?.message || "");
+                return;
+            }
+
+            const retryUrl = url;
+
+            mpegtsPlayer?.destroy?.().catch?.(() => {});
+            mpegtsPlayer = null;
+
+            setTimeout(() => {
+                try {
+                    playMpegTsOnce(retryUrl);
+                    mpegtsPlayer?.play?.();
+                } catch {}
+            }, 800);
+        }
+    );
+
+    mpegtsPlayer.attachMediaElement(video);
+    mpegtsPlayer.load();
+    mpegtsPlayer.play();
+}
+
+async function playMpegTs(url) {
+    if (
+        typeof mpegts === "undefined" ||
+        !mpegts.isSupported()
+    ) {
+        throw new Error(
+            "Trình duyệt chưa hỗ trợ MPEG-TS"
+        );
+    }
+
+    mpegtsRecoverCount = 0;
+
+    playMpegTsOnce(url);
+}
+
+// =====================================================
+// BÓNG ĐÁ VN
+// =====================================================
+// Màn 1: hiện thẻ các website (Giờ Vàng, Chuối Chiên...)
+// Màn 2: bấm vào 1 website -> hiện thẻ các trận + nút quay lại.
+
+function renderVnFootball() {
+
+    footballFilters.style.display =
+        "none";
+
+    groups.innerHTML =
+        "";
+
+    list.innerHTML =
+        "";
+
+    if (
+        !vnSites.length
+    ) {
+
+        list.innerHTML =
+            `
+            <div class="empty">
+                🇻🇳 Hôm nay không có trận nào phù hợp
+            </div>
+            `;
+
+        return;
+    }
+
+    // ==================================================
+    // MÀN 2: ĐÃ CHỌN WEBSITE -> HIỆN CÁC TRẬN
+    // ==================================================
+
+    if (
+        currentVnSite
+    ) {
+
+        renderVnMatchList();
+
+        return;
+    }
+
+    // ==================================================
+    // MÀN 1: DANH SÁCH WEBSITE
+    // ==================================================
+
+    const label =
+        document.createElement(
+            "div"
+        );
+
+    label.className =
+        "empty";
+
+    label.style.padding =
+        "6px 2px 12px";
+
+    label.textContent =
+        "🇻🇳 Chọn trang để xem trận:";
+
+    list.appendChild(
+        label
+    );
+
+    for (
+        const site
+        of vnSites
+    ) {
+
+        const card =
+            document.createElement(
+                "div"
+            );
+
+        card.className =
+            "channel";
+
+        if (
+            site.logo
+        ) {
+            const img =
+                document.createElement(
+                    "img"
+                );
+            img.className =
+                "logo";
+            setupLogoImg(
+                img,
+                site.logo
+            );
+            card.appendChild(
+                img
+            );
+        } else {
+            // Site khong co logo rieng (Vua San Co, Khan Dai...):
+            // ve badge chu cai dau thay vi lay logo doi bong.
+            const badge =
+                document.createElement(
+                    "div"
+                );
+            badge.className =
+                "logo logo-badge";
+            badge.textContent =
+                (site.name || "?")
+                    .trim()
+                    .charAt(0)
+                    .toUpperCase();
+            card.appendChild(
+                badge
+            );
+        }
+
+        const name =
+            document.createElement(
+                "div"
+            );
+
+        name.className =
+            "channel-name";
+
+        name.textContent =
+            site.name +
+            "  (" +
+            (site.matches ? site.matches.length : 0) +
+            " trận)";
+
+        card.appendChild(
+            name
+        );
+
+        card.onclick =
+            () => {
+
+                currentVnSite =
+                    site.name;
+
+                currentVnMatch =
+                    null;
+
+                renderVnFootball();
+            };
+
+        list.appendChild(
+            card
+        );
+    }
+}
+
+// =====================================================
+// MÀN 2: DANH SÁCH TRẬN CỦA 1 WEBSITE
+// =====================================================
+
+function renderVnMatchList() {
+
+    const site =
+        vnSites.find(
+            s =>
+                s.name ===
+                currentVnSite
+        );
+
+    const matches =
+        site && site.matches
+            ? site.matches
+            : [];
+
+    // Nếu đang phát 1 trận -> hiện panel đổi luồng/BLV
+    if (
+        currentVnMatch
+    ) {
+
+        renderVnMatchDetail();
+
+        return;
+    }
+
+    // Nút quay lại chọn website
+    const back =
+        document.createElement(
+            "button"
+        );
+
+    back.className =
+        "blv-button";
+
+    back.style.marginBottom =
+        "10px";
+
+    back.textContent =
+        "⟵ Quay lại";
+
+    back.onclick =
+        () => {
+
+            currentVnSite =
+                null;
+
+            renderVnFootball();
+        };
+
+    list.appendChild(
+        back
+    );
+
+    if (!matches.length) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.className =
+            "empty";
+
+        empty.textContent =
+            "Không có trận nào phù hợp";
+
+        list.appendChild(
+            empty
+        );
+
+        return;
+    }
+
+    renderChunked(
+        matches,
+        match => {
+
+            const box =
+                document.createElement(
+                    "div"
+                );
+
+            box.className =
+                "vn-match-card";
+
+            // Logo (doi bong) ben trai
+            if (
+                match.logo
+            ) {
+
+                const img =
+                    document.createElement(
+                        "img"
+                    );
+
+                img.className =
+                    "vn-match-logo";
+
+                setupLogoImg(
+                    img,
+                    match.logo
+                );
+
+                box.appendChild(
+                    img
+                );
+            }
+
+            const body =
+                document.createElement(
+                    "div"
+                );
+
+            body.className =
+                "vn-match-body";
+
+            const head =
+                document.createElement(
+                    "div"
+                );
+
+            head.className =
+                "vn-match-head";
+
+            const timeEl =
+                document.createElement(
+                    "span"
+                );
+
+            timeEl.className =
+                "vn-match-time";
+
+            timeEl.textContent =
+                match.time ||
+                "LIVE";
+
+            head.appendChild(
+                timeEl
+            );
+
+            const liveEl =
+                document.createElement(
+                    "span"
+                );
+
+            liveEl.className =
+                "live-badge";
+
+            liveEl.innerHTML =
+                '<span class="live-dot"></span>LIVE';
+
+            head.appendChild(
+                liveEl
+            );
+
+            body.appendChild(
+                head
+            );
+
+            const titleEl =
+                document.createElement(
+                    "div"
+                );
+
+            titleEl.className =
+                "vn-match-title";
+
+            titleEl.textContent =
+                match.title ||
+                "Trận đấu";
+
+            body.appendChild(
+                titleEl
+            );
+
+            const foot =
+                document.createElement(
+                    "div"
+                );
+
+            foot.className =
+                "vn-match-foot";
+
+            foot.textContent =
+                match.streams.length +
+                " luồng  •  ▶ XEM";
+
+            body.appendChild(
+                foot
+            );
+
+            box.appendChild(
+                body
+            );
+
+            box.onclick =
+                () =>
+                    playVnMatch(
+                        match
+                    );
+
+            return box;
+        },
+        list
+    );
+}
+
+// =====================================================
+// PANEL ĐANG PHÁT + ĐỔI LUỒNG/BLV
+// =====================================================
+
+function renderVnMatchDetail() {
+
+    const match =
+        currentVnMatch;
+
+    const back =
+        document.createElement(
+            "button"
+        );
+
+    back.className =
+        "blv-button";
+
+    back.style.marginBottom =
+        "10px";
+
+    back.textContent =
+        "⟵ Danh sách trận";
+
+    back.onclick =
+        () => {
+
+            currentVnMatch =
+                null;
+
+            renderVnFootball();
+        };
+
+    list.appendChild(
+        back
+    );
+
+    const info =
+        document.createElement(
+            "div"
+        );
+
+    info.className =
+        "vn-match-title";
+
+    info.style.margin =
+        "4px 2px 12px";
+
+    info.textContent =
+        (match.time ? match.time + "  •  " : "") +
+        match.title;
+
+    list.appendChild(
+        info
+    );
+
+    const label =
+        document.createElement(
+            "div"
+        );
+
+    label.className =
+        "blv-label";
+
+    label.textContent =
+        "Chọn luồng / BLV:";
+
+    list.appendChild(
+        label
+    );
+
+    const wrap =
+        document.createElement(
+            "div"
+        );
+
+    wrap.className =
+        "blv-buttons";
+
+    wrap.style.marginBottom =
+        "10px";
+
+    for (
+        const stream
+        of match.streams
+    ) {
+
+        const btn =
+            document.createElement(
+                "button"
+            );
+
+        btn.className =
+            "blv-button" +
+            (
+                currentChannel &&
+                currentChannel.url ===
+                stream.url
+                    ? " active"
+                    : ""
+            );
+
+        btn.textContent =
+            stream.name;
+
+        btn.onclick =
+            async () => {
+
+                await playVnStream(
+                    stream
+                );
+
+                renderVnFootball();
+            };
+
+        wrap.appendChild(
+            btn
+        );
+    }
+
+    list.appendChild(
+        wrap
+    );
+}
+
+// =====================================================
+// PHÁT 1 TRẬN BÓNG ĐÁ VN (dùng chung pipeline với TV)
+// =====================================================
+
+async function playVnMatch(match) {
+
+    currentVnMatch =
+        match;
+
+    // Render panel (doi luong/BLV) TRUOC khi bat dau phat de nguoi
+    // dung thay ngay danh sach luong, khong phai cho player resolve.
+    renderVnFootball();
+
+    if (
+        match.streams.length
+    ) {
+
+        await playVnStream(
+            match.streams[0]
+        );
+
+        // Sau khi phat xong thi cap nhat lai trang thai nut active.
+        renderVnFootball();
+    }
+}
+
+// Phát 1 luồng (BLV) cụ thể của trận đang chọn.
+async function playVnStream(stream) {
+
+    const channel = {
+
+        name:
+            (currentVnMatch && currentVnMatch.title
+                ? currentVnMatch.title
+                : "Trận đấu") +
+            " (" + stream.name + ")",
+
+        logo:
+            currentVnMatch && currentVnMatch.logo
+                ? currentVnMatch.logo
+                : "",
+
+        group:
+            currentVnSite || "",
+
+        url:
+            stream.url,
+
+        headers:
+            stream.headers || {},
+
+        clearKeys:
+            stream.clearKeys || {}
+    };
+
+    currentChannel =
+        channel;
+
+    await playTV(
+        channel
+    );
+}
+
+// =====================================================
+// TV
+// =====================================================
+
+function renderTV() {
+
+    footballFilters.style.display =
+        "none";
+
+    const filtered =
+        tvData.slice();
+
+    renderTVGroups(
+        filtered
+    );
+
+    renderTVList(
+        filtered
+    );
+}
+
+
+// =====================================================
+// TV GROUPS
+// =====================================================
+
+function renderTVGroups(
+    filtered
+) {
+
+    groups.innerHTML =
+        "";
+
+
+    const unique =
+        [
+            ...new Set(
+                filtered
+                    .map(
+                        x =>
+                            x.group
+                    )
+                    .filter(Boolean)
+            )
+        ];
+
+
+    for (
+        const g
+        of unique
+    ) {
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+
+        button.className =
+            "group";
+
+
+        button.textContent =
+            g;
+
+
+        button.onclick =
+            () => {
+
+                const tvFiltered =
+                    tvData.filter(
+                        x =>
+                            x.group === g
+                    );
+
+
+                renderTVList(
+                    tvFiltered
+                );
+            };
+
+
+        groups.appendChild(
+            button
+        );
+    }
+}
+
+
+function renderTVList(
+    channels
+) {
+
+    list.innerHTML =
+        "";
+
+    renderChunked(
+        channels,
+        channel => {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.className =
+                "channel";
+
+            if (
+                channel.logo
+            ) {
+
+                const img =
+                    document.createElement(
+                        "img"
+                    );
+
+                img.className =
+                    "logo";
+
+                setupLogoImg(
+                    img,
+                    channel.logo
+                );
+
+                div.appendChild(
+                    img
+                );
+            }
+
+            const name =
+                document.createElement(
+                    "div"
+                );
+
+            name.className =
+                "channel-name";
+
+            name.textContent =
+                channel.name;
+
+            div.appendChild(
+                name
+            );
+
+            div.onclick =
+                () =>
+                    playTV(
+                        channel
+                    );
+
+            return div;
+        },
+        list
+    );
+}
+
+
+// =====================================================
+// TV PLAY
+// =====================================================
+
+async function playTV(channel) {
+
+    errorBox.textContent = "";
+
+    hideBlv();
+
+    currentSourceBox.style.display = "none";
+
+    title.textContent =
+        channel.name || "Đang phát";
+
+    status.textContent = "Đang mở...";
+
+    try {
+
+        console.log("================================");
+        console.log("TV PLAY START");
+        console.log("CHANNEL:", channel.name);
+        console.log("SOURCE URL:", channel.url);
+
+        await stopPlayer();
+
+        // Link khong khoa -> phat thang nhu VLC, KHONG goi /api/resolve.
+        if (!channelNeedsServer(channel)) {
+            try {
+                await tryPlayUrlDirect(channel.url, channel.name || "");
+
+                return;
+            } catch (directErr) {
+                console.warn(
+                    "DIRECT hong, chuyen sang API:",
+                    directErr && directErr.message
+                );
+            }
+        }
+
+        const cacheKey =
+            "tv:" + channel.url;
+
+        const cached =
+            streamCache.get(cacheKey);
+
+        let result;
+
+        if (
+            cached &&
+            Date.now() - cached.time <
+                STREAM_CACHE_TIME
+        ) {
+            result = cached.data;
+        } else {
+            // Nguon (livesport, tv360, vtvprime...) chap chon: co luc
+            // 502/404/network loi -> tu thu lai vai lan truoc khi bao loi.
+            const RESOLVE_ATTEMPTS = 3;
+
+            let lastError = null;
+
+            for (let attempt = 1; attempt <= RESOLVE_ATTEMPTS; attempt++) {
+                try {
+
+                    const response = await fetch(
+                        "/api/resolve?url=" +
+                        encodeURIComponent(channel.url)
+                    );
+
+                    console.log(
+                        "RESOLVE HTTP:",
+                        response.status,
+                        "(lan " + attempt + ")"
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            "Resolve HTTP " +
+                            response.status
+                        );
+                    }
+
+                    result = await response.json();
+
+                    if (!result.ok) {
+                        throw new Error(
+                            result.error ||
+                            "Resolve failed"
+                        );
+                    }
+
+                    streamCache.set(
+                        cacheKey,
+                        {
+                            time: Date.now(),
+                            data: result
+                        }
+                    );
+
+                    lastError = null;
+                    break;
+
+                } catch (e) {
+
+                    lastError = e;
+
+                    if (attempt < RESOLVE_ATTEMPTS) {
+                        status.textContent =
+                            "Đang thử lại (" + attempt + "/" + RESOLVE_ATTEMPTS + ")...";
+
+                        await new Promise(r =>
+                            setTimeout(r, 1200 * attempt)
+                        );
+                    }
+                }
+            }
+
+            if (lastError) {
+                throw lastError;
+            }
+        }
+
+        console.log("RESOLVE RESULT:", result);
+
+        if (!result.ok) {
+            throw new Error(
+                result.error ||
+                "Resolve failed"
+            );
+        }
+
+        await stopPlayer();
+
+        const sources =
+            pickPlaySources(result);
+
+        const url =
+            sources.primary ||
+            channel.url;
+
+
+        const fallbackUrl =
+            sources.fallback;
+
+        // Key cua kenh: uu tien key do /api/resolve tra ve (da fix theo
+        // KID cua MPD), roi den key trong playlist.
+        const clearKeys = {
+            ...((channel.clearKeys) || {}),
+            ...((result.clearKeys) || {})
+        };
+
+        if (Object.keys(clearKeys).length) {
+            KEYED_URLS.add(channel.url);
+        }
+
+        console.log("PLAY URL:", url);
+        console.log("KIND:", result.kind);
+        console.log("CLEARKEYS:", clearKeys);
+        console.log(
+            "CLEARKEY COUNT:",
+            Object.keys(clearKeys).length
+        );
+
+        // ==============================
+        // HLS
+        // ==============================
+
+        if (
+            result.kind === "hls" ||
+            isHLS(url)
+        ) {
+
+            console.log(
+                "TV PLAY TYPE: HLS"
+            );
+
+            await playHLS(
+                url,
+                fallbackUrl
+            );
+
+            status.textContent =
+                "🔴 Đang phát";
+
+            return;
+        }
+
+        if (
+            result.contentType === "video/mp2t" ||
+            /\.ts(?:\?|$)/i.test(url)
+        ) {
+            await playMpegTs(url);
+            status.textContent = "🔴 Đang phát";
+            return;
+        }
+
+        // ==============================
+        // DASH
+        // ==============================
+
+        if (
+            result.kind === "dash" ||
+            isMPD(url)
+        ) {
+
+            currentDashUrl = url;
+            dashRecoveryAttempts = 0;
+
+            console.log(
+                "TV PLAY TYPE: DASH"
+            );
+
+            await initPlayer();
+
+            // Cấu hình ClearKey TRƯỚC khi load MPD để Shaka đọc
+            // DRM config ngay tại thời điểm load() — choantuoi
+            // nếu để sau thì Shaka có thể đãGc/clear config cũ.
+            if (
+                Object.keys(clearKeys).length > 0
+            ) {
+
+                console.log(
+                    "CONFIG CLEARKEY"
+                );
+
+                await shakaPlayer.configure({
+                    drm: {
+                        clearKeys:
+                            clearKeys
+                    }
+                });
+            }
+
+            console.log(
+                "SHAKA LOAD:",
+                url
+            );
+
+            await shakaPlayer.load(url);
+
+            populateShakaQualities();
+
+            console.log(
+                "SHAKA LOAD SUCCESS"
+            );
+
+            status.textContent =
+                "🔴 Đang phát";
+
+            return;
+        }
+
+        // ==============================
+        // DIRECT VIDEO
+        // ==============================
+
+        console.log(
+            "TV PLAY TYPE: DIRECT VIDEO"
+        );
+
+        await playDirectVideo(
+            url,
+            fallbackUrl
+        );
+
+        status.textContent =
+            "🔴 Đang phát";
+
+    } catch (err) {
+
+        console.error(
+            "================================"
+        );
+
+        console.error(
+            "TV PLAY ERROR:",
+            err
+        );
+
+        console.error(
+            "NAME:",
+            err?.name
+        );
+
+        console.error(
+            "MESSAGE:",
+            err?.message
+        );
+
+        console.error(
+            "STACK:",
+            err?.stack
+        );
+
+        console.error(
+            "================================"
+        );
+
+        status.textContent =
+            "Không phát được";
+
+        errorBox.textContent =
+            (err?.message || String(err));
+    }
+}
+
+// =====================================================
+// STOP
+// =====================================================
+
+async function stopPlayer() {
+
+    if (mpegtsPlayer) {
+        try {
+            mpegtsPlayer.pause();
+            mpegtsPlayer.unload();
+            mpegtsPlayer.detachMediaElement();
+            mpegtsPlayer.destroy();
+        } catch (e) {
+            console.warn("MPEG-TS destroy error:", e);
+        }
+
+        mpegtsPlayer = null;
+    }
+
+
+    resetQualityOptions();
+
+    // ==============================
+    // HỦY HLS
+    // ==============================
+
+    if (hlsPlayer) {
+
+        try {
+            await hlsPlayer.destroy();
+        } catch (e) {
+            console.warn(
+                "HLS destroy error:",
+                e
+            );
+        }
+
+        hlsPlayer = null;
+    }
+
+
+    // ==============================
+    // HỦY SHAKA HOÀN TOÀN
+    // ==============================
+
+    if (shakaPlayer) {
+
+        try {
+            await shakaPlayer.destroy();
+        } catch (e) {
+            console.warn(
+                "Shaka destroy error:",
+                e
+            );
+        }
+
+        shakaPlayer = null;
+    }
+
+
+    // ==============================
+    // RESET VIDEO
+    // ==============================
+
+    try {
+        video.pause();
+    } catch {}
+
+
+    video.removeAttribute("src");
+
+    video.load();
+}
+
+
+// =====================================================
+// TYPE
+// =====================================================
+
+function isMPD(
+    url
+) {
+
+    const u =
+        String(url || "");
+
+
+    return (
+        /\.mpd(?:\?|$)/i.test(u) ||
+        /manifest\.mpd/i.test(u)
+    );
+}
+
+
+function isHLS(
+    url
+) {
+
+    const u =
+        String(url || "");
+
+
+    return (
+        /\.m3u8(?:\?|$)/i.test(u) ||
+        /m3u8/i.test(u)
+    );
+}
+
+
+// =====================================================
+// SEARCH (đã bỏ thanh tìm kiếm trận)
+// =====================================================
+
+
+// =====================================================
+// LOGO HELPER
+// =====================================================
+// lazy + no-referrer: tranh logo ben ngoai chan load/chan render,
+// va tu an khi loi (nhieu logo nguon khong cho hot-link).
+
+// =====================================================
+// RENDER THEO LO (CHUNKED)
+// =====================================================
+// Chen tung lo phan tu vao container thay vi chen het mot lan.
+// Voi 500+ kenh, chen het mot lan se block UI vai giay -> treo.
+// Dung requestAnimationFrame giua cac lo de giu UI muot.
+
+const RENDER_CHUNK_SIZE = 40;
+
+function renderChunked(items, createElement, container) {
+
+    let index = 0;
+
+    // Huy render cu neu nguoi dung doi tab giua chung.
+    const token = ++renderChunked.token;
+
+    function step() {
+
+        if (token !== renderChunked.token) {
+            return;
+        }
+
+        const end = Math.min(
+            index + RENDER_CHUNK_SIZE,
+            items.length
+        );
+
+        const frag = document.createDocumentFragment();
+
+        for (; index < end; index++) {
+
+            const el = createElement(items[index], index);
+
+            if (el) {
+                frag.appendChild(el);
+            }
+        }
+
+        container.appendChild(frag);
+
+        if (index < items.length) {
+            requestAnimationFrame(step);
+        }
+    }
+
+    requestAnimationFrame(step);
+}
+
+renderChunked.token = 0;
+
+// Skeleton card (the xam gia) hien khi dang tai.
+function skeletonCards(count = 8) {
+
+    let html = "";
+
+    for (let i = 0; i < count; i++) {
+        html +=
+            '<div class="channel skeleton">' +
+            '<div class="sk-logo"></div>' +
+            '<div class="sk-line"></div>' +
+            '</div>';
+    }
+
+    return html;
+}
+
+function setupLogoImg(img, src) {
+
+    img.loading = "lazy";
+
+    img.referrerPolicy = "no-referrer";
+
+    img.src = src;
+
+    img.onerror = () => {
+
+        img.style.display = "none";
+    };
+}
+
+// =====================================================
+// ESCAPE
+// =====================================================
+
+function escapeHtml(
+    text
+) {
+
+    return String(text)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+// =====================================================
+// CHAT CHUNG (poll nhe qua server, luu RAM)
+// =====================================================
+
+const chatPanel = document.getElementById("chatPanel");
+const chatMessages = document.getElementById("chatMessages");
+const chatInput = document.getElementById("chatInput");
+const chatNameInput = document.getElementById("chatNameInput");
+
+let chatLastId = 0;
+let chatPollTimer = null;
+
+let chatName =
+    localStorage.getItem("tv360chatname") ||
+    ("Khách " + Math.floor(Math.random() * 900 + 100));
+
+// Chat da bi go khoi HTML -> neu thieu DOM thi bo qua toan bo phan chat,
+// khong duoc de loi chan phan khoi tao danh sach kenh ben duoi.
+if (chatNameInput) chatNameInput.value = chatName;
+
+if (chatNameInput) chatNameInput.addEventListener(
+    "change",
+    () => {
+
+        chatName =
+            chatNameInput.value.trim() ||
+            ("Khách " + Math.floor(Math.random() * 900 + 100));
+
+        chatNameInput.value = chatName;
+
+        localStorage.setItem("tv360chatname", chatName);
+    }
+);
+
+function chatSetOpen(open) {
+
+    const willOpen =
+        typeof open === "boolean"
+            ? open
+            : !chatPanel.classList.contains("open");
+
+    chatPanel.classList.toggle(
+        "open",
+        willOpen
+    );
+
+    const toggle = document.getElementById("chatToggle");
+
+    if (toggle) {
+        toggle.textContent = willOpen ? "✕ Đóng chat" : "💬 Chat";
+        toggle.classList.toggle("active", willOpen);
+    }
+
+    // Khi chat mo: an danh sach ben trai de khung video va chat rong hon.
+    const left = document.querySelector(".left");
+
+    if (left) {
+        left.classList.toggle("hidden", willOpen);
+    }
+
+    if (willOpen) {
+        pollChat();
+        setTimeout(() => chatInput.focus(), 80);
+    }
+}
+
+// Chat da go khoi giao dien -> chatToggle khong con, bo qua.
+const chatToggle =
+    document.getElementById("chatToggle");
+
+if (chatToggle) {
+    chatToggle.onclick =
+        () => chatSetOpen();
+}
+
+function chatAppend(m) {
+
+    if (!chatMessages) return;
+
+    const empty = chatMessages.querySelector(".chat-empty");
+
+    if (empty) {
+        empty.remove();
+    }
+
+    const div = document.createElement("div");
+
+    div.className =
+        "chat-msg" + (m.name === chatName ? " self" : "");
+
+    div.innerHTML =
+        "<b>" + escapeHtml(m.name) + "</b>" +
+        escapeHtml(m.text);
+
+    chatMessages.appendChild(div);
+
+    // Gioi han DOM: giu 150 tin cuoi
+    while (chatMessages.children.length > 150) {
+        chatMessages.removeChild(chatMessages.firstChild);
+    }
+}
+
+async function pollChat() {
+
+    if (!chatMessages) return;
+
+    try {
+
+        const r =
+            await fetch("/api/chat?after=" + chatLastId);
+
+        const j =
+            await r.json();
+
+        if (!j || !j.ok || !j.messages.length) {
+            return;
+        }
+
+        const atBottom =
+            chatMessages.scrollTop + chatMessages.clientHeight >=
+            chatMessages.scrollHeight - 40;
+
+        for (const m of j.messages) {
+            chatLastId = Math.max(chatLastId, m.id);
+            chatAppend(m);
+        }
+
+        if (atBottom) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+    } catch {}
+}
+
+document.getElementById("chatForm")?.addEventListener(
+    "submit",
+    async e => {
+
+        e.preventDefault();
+
+        const text = chatInput.value.trim();
+
+        if (!text) return;
+
+        chatInput.value = "";
+
+        try {
+
+            await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: chatName, text })
+            });
+
+            pollChat();
+
+        } catch {}
+    }
+);
+
+// Chi poll khi con giao dien chat.
+if (chatMessages) {
+    setInterval(pollChat, 5000);
+}
+
+// =====================================================
+// START
+// =====================================================
+
+(async () => {
+
+    try {
+
+        await initPlayer();
+
+    } catch (e) {
+
+        console.error(
+            "PLAYER INIT ERROR:",
+            e
+        );
+    }
+
+
+        
+    
+
+    // Chọn hàm tải đúng theo mode — không dùng loadData() chung nữa
+    if (mode === "tv") {
+        await loadTvData();
+    } else if (mode === "vnfootball") {
+        await loadFootballData();
+    }
+
+
+    // Dong bo trang thai thanh cong cu ngay khi mo trang (nut play/mute,
+    // thanh tua live/VOD) thay vi cho su kien video dau tien.
+    updateVideoControls();
+
+
+})();
+
+</script>
+
+</body>
+
+</html>
