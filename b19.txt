@@ -1,0 +1,16 @@
+url        http://localhost:3000
+http       200
+load       1143ms
+title      "TV360 WEB PLAYER"
+bodyChars  554
+patchright c:\Users\nguye\.vscode\extensions\danielsanmedium.dscodegpt-3.24.81\standalone\
+browser    pinned Chromium  C:\Users\nguye\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe
+text       📡 TV360 🇻🇳 Bóng đá VN 📺 TV 💬 Chat 🇻🇳 Chọn trang để xem trận: V Vua Sân Cỏ TV (24 trận) C Chuối Chiên TV (8 trận) G Giờ Vàng TV (2 trận) B Bia Ôm TV (10 trận) S S8 TV (12 trận) S Sao Kê TV (8 tr
+script     {
+ "error": "no match",
+ "snapshot": "@e1 button \"🇻🇳 Bóng đá VN\"\n@e2 button \"📺 TV\"\n@e3 button \"💬 Chat\"\n@e4 textbox \"Tiến trình phát\" [disabled]\n@e5 button \"▶\"\n@e6 button \"↶\"\n@e7 button \"↷\"\n@e8 button \"🔊\"\n@e9 textbox \"Âm lượng\"\n@e10 button \"LIVE\"\n@e11 select \"1x 0.75x 1.25x 1.5x\"\n@e12 select \"Auto\" [disabled]\n@e13 button \"⛶\"\n@e14 textbox \"Tên của bạn\"\n@e15 button \"✕\"\n@e16 textbox \"Nhập bình luận...\"\n@e17 button \"Gửi\""
+}
+
+console errors/warnings (0):
+
+requests failed (0):

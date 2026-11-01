@@ -1,0 +1,7 @@
+{
+  "name": "tv360-test-workspace",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix .\\TV360-TEST-20261031T161522Z-1-001\\TV360-TEST start"
+  }
+}

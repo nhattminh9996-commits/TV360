@@ -1,0 +1,13 @@
+url        http://localhost:3000
+http       200
+load       1913ms
+title      "TV360 WEB PLAYER"
+bodyChars  246
+patchright c:\Users\nguye\.vscode\extensions\danielsanmedium.dscodegpt-3.24.81\standalone\
+browser    pinned Chromium  C:\Users\nguye\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe
+text       📡 TV360 🇻🇳 Bóng đá VN 📺 TV 💬 Chat ▶ ↶ ↷ LIVE 🔊 LIVE 1x 0.75x 1.25x 1.5x Auto ⛶ Chưa chọn trận Chọn nguồn và bấm vào một trận để phát 💬 Chat bình luận Cùng bàn luận về trận đấu ✕ Chưa có bình lu
+script     "SCRIPT ERROR: locator.click: Element is not visible | Call log: | \u001b[2m  - waiting for locator('.channel-name').filter({ hasText: 'Vua Sân Cỏ TV' }).first()\u001b[22m | \u001b[2m    - locator resolved to <div class=\"channel-name\">Vua Sân Cỏ TV  (23 trận)</div>\u001b[22m"
+
+console errors/warnings (0):
+
+requests failed (0):

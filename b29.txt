@@ -1,0 +1,36 @@
+url        http://localhost:3000
+http       200
+load       9487ms
+title      "TV360 WEB PLAYER"
+bodyChars  246
+patchright c:\Users\nguye\.vscode\extensions\danielsanmedium.dscodegpt-3.24.81\standalone\
+browser    pinned Chromium  C:\Users\nguye\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe
+text       📡 TV360 🇻🇳 Bóng đá VN 📺 TV 💬 Chat ▶ ↶ ↷ LIVE 🔊 LIVE 1x 0.75x 1.25x 1.5x Auto ⛶ Chưa chọn trận Chọn nguồn và bấm vào một trận để phát 💬 Chat bình luận Cùng bàn luận về trận đấu ✕ Chưa có bình lu
+script     {
+ "leftHidden": false,
+ "railW": 320,
+ "playerW": 646,
+ "railX": 1046,
+ "railRightAligned": true
+}
+
+console errors/warnings (46):
+  [error] Failed to load resource: the server responded with a status of 404 ()
+  [error] Failed to load resource: the server responded with a status of 404 ()
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+
+requests failed (46):
+  HTTP 404 https://wncdnhls-global.ebaclofen.org/live/vsc-channel-2.m3u8
+  HTTP 404 http://localhost:3000/api/proxy?url=https%3A%2F%2Fwncdnhls-global.ebaclofen.org%2Flive%2Fvsc-channel-2.m3u8
